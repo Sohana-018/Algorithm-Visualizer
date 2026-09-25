@@ -70,7 +70,11 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
       const rect = containerRef.current!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      const newNodeId = String.fromCharCode(65 + graph.nodes.length);
+      const idx = graph.nodes.length;
+      // A-Z then AA, AB ...
+      const newNodeId = idx < 26
+        ? String.fromCharCode(65 + idx)
+        : String.fromCharCode(65 + Math.floor((idx - 26) / 26)) + String.fromCharCode(65 + (idx - 26) % 26);
       setGraph({
         ...graph,
         nodes: [...graph.nodes, { id: newNodeId, x, y }]

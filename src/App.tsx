@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayer } from './hooks/usePlayer';
 import { ArrayView } from './components/ArrayView';
 import { MergeSortView } from './components/MergeSortView';
@@ -198,6 +199,12 @@ function App() {
   return (
     <div className="min-h-screen flex bg-[#0B0F19] relative overflow-hidden text-white font-sans selection:bg-accent-blue/30">
       
+      {/* Animated floating background orbs */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="orb-1 absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-accent-blue/5 blur-[100px]" />
+        <div className="orb-2 absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-accent-violet/5 blur-[100px]" />
+        <div className="orb-3 absolute top-[50%] left-[-10%] w-[300px] h-[300px] rounded-full bg-accent-amber/3 blur-[80px]" />
+      </div>
       {/* --- DESKTOP LEFT SIDEBAR --- */}
       <aside className="hidden lg:flex flex-col w-[80px] hover:w-[260px] transition-all duration-300 border-r border-surfaceHighlight/50 bg-surface/30 backdrop-blur-xl z-50 h-screen sticky top-0 group py-6 overflow-hidden flex-shrink-0">
         <div className="flex items-center px-6 mb-10 whitespace-nowrap">
@@ -226,7 +233,7 @@ function App() {
                 )}
               >
                 {isActive && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-blue shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+                  <div className="sidebar-active-glow absolute left-0 top-0 bottom-0 w-1 bg-accent-blue rounded-r" />
                 )}
                 <Icon className={cn("w-6 h-6 shrink-0", isActive && "drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]")} />
                 <span className="ml-4 text-sm font-semibold tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
@@ -240,9 +247,7 @@ function App() {
 
       {/* --- MAIN CONTENT AREA --- */}
       <div className="flex-1 flex flex-col min-h-screen relative overflow-y-auto overflow-x-hidden">
-        {/* Background decorations */}
-        <div className="absolute top-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-accent-blue/5 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-accent-violet/5 blur-[120px] pointer-events-none" />
+        {/* Background decorations removed — orbs are in the fixed layer */}
 
         <div className="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[1500px] mx-auto z-10">
           
@@ -311,10 +316,10 @@ function App() {
                     {(isTree || isMergeSort) && (
                       <button 
                         onClick={() => setIsFullscreen(true)}
-                        className="flex items-center space-x-1 px-3 py-1 bg-surfaceHighlight/50 hover:bg-surfaceHighlight border border-white/10 rounded-full text-xs font-bold text-white transition-all ml-2"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-blue/20 to-accent-violet/20 hover:from-accent-blue/30 hover:to-accent-violet/30 border border-accent-blue/30 hover:border-accent-blue/60 rounded-lg text-xs font-bold text-accent-blue transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] ml-2 group"
                         title="Open Fullscreen"
                       >
-                        <Maximize2 className="w-3.5 h-3.5" />
+                        <Maximize2 className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
                         <span>EXPAND</span>
                       </button>
                     )}
@@ -367,7 +372,6 @@ function App() {
                 </div>
 
                 {/* Custom Inputs */}
-                {/* Custom Inputs */}
                 {(isArray || isMergeSort || isBinarySearch) && (
                   <div className="mb-6 flex flex-col gap-3 bg-black/20 p-3 rounded-xl border border-white/5">
                     {/* Top Row: Modes (if any) */}
@@ -416,14 +420,14 @@ function App() {
                         <button 
                           onClick={handleCustomArraySubmit}
                           disabled={player.isPlaying}
-                          className="px-4 py-2 bg-accent-blue/20 hover:bg-accent-blue/30 text-accent-blue border border-accent-blue/30 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 w-full sm:w-auto"
+                          className="btn-shimmer px-4 py-2 bg-gradient-to-r from-accent-blue/20 to-accent-blue/10 hover:from-accent-blue/30 hover:to-accent-blue/20 text-accent-blue border border-accent-blue/30 hover:border-accent-blue/60 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto shadow-[0_0_10px_rgba(59,130,246,0.1)] hover:shadow-[0_0_16px_rgba(59,130,246,0.3)]"
                         >
                           Set Array
                         </button>
                         <button 
                           onClick={handleShuffleArray}
                           disabled={player.isPlaying}
-                          className="px-4 py-2 bg-surfaceHighlight/50 hover:bg-surfaceHighlight rounded-lg text-sm font-medium transition-all disabled:opacity-50 text-white w-full sm:w-auto whitespace-nowrap"
+                          className="btn-shimmer px-4 py-2 bg-surfaceHighlight/50 hover:bg-surfaceHighlight border border-white/10 hover:border-white/25 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed text-gray-200 hover:text-white w-full sm:w-auto whitespace-nowrap"
                         >
                           Randomize
                         </button>
@@ -439,75 +443,96 @@ function App() {
                 )}
                 
                 {/* Visualizer Canvas */}
-                <div className="flex-1 mb-8 flex flex-col justify-center min-h-[300px]">
-                  {isArray && (
-                    <ArrayView 
-                      initialArray={array}
-                      steps={steps as any}
-                      currentIndex={player.currentIndex}
-                    />
-                  )}
-                  {isMergeSort && !isFullscreen && (
-                    <MergeSortView
-                      initialArray={array}
-                      steps={steps as any}
-                      currentIndex={player.currentIndex}
-                      isFullscreen={false}
-                    />
-                  )}
-                  {isBinarySearch && (
-                    <BinarySearchView
-                      initialArray={[...array].sort((a,b)=>a-b)}
-                      steps={steps as any}
-                      currentIndex={player.currentIndex}
-                      mode={binarySearchMode}
-                    />
-                  )}
-                  {isGraph && (
-                    <GraphView
-                      graph={graph}
-                      setGraph={setGraph}
-                      isEditable={!player.isPlaying && player.currentIndex === 0}
-                      steps={steps as any}
-                      currentIndex={player.currentIndex}
-                    />
-                  )}
-                  {isTree && !isFullscreen && (
-                    <KnapsackView
-                      steps={steps as any}
-                      currentIndex={player.currentIndex}
-                      capacity={knapsackCapacity}
-                      isFullscreen={false}
-                    />
-                  )}
-                  {isTree && isFullscreen && (
-                    <div className="flex flex-col items-center justify-center h-[500px] border border-surfaceHighlight/50 rounded-2xl bg-black/20 text-gray-400 text-sm">
-                      <Maximize2 className="w-8 h-8 mb-3 opacity-50" />
-                      Tree is currently open in fullscreen mode.
-                    </div>
-                  )}
-                  {isMergeSort && isFullscreen && (
-                    <div className="flex flex-col items-center justify-center h-[500px] border border-surfaceHighlight/50 rounded-2xl bg-black/20 text-gray-400 text-sm">
-                      <Maximize2 className="w-8 h-8 mb-3 opacity-50" />
-                      Merge Sort Tree is currently open in fullscreen mode.
-                    </div>
-                  )}
-                  {isNQueens && (
-                    <NQueensView 
-                      n={nQueensSize}
-                      steps={steps as any}
-                      currentIndex={player.currentIndex}
-                      activeSolutionIndex={nQueensFindAll ? nQueensSolutionIndex : undefined}
-                    />
-                  )}
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeAlgoId}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex-1 mb-8 flex flex-col justify-center min-h-[300px]"
+                  >
+                    {isArray && (
+                      <ArrayView 
+                        initialArray={array}
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                      />
+                    )}
+                    {isMergeSort && !isFullscreen && (
+                      <MergeSortView
+                        initialArray={array}
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                        isFullscreen={false}
+                      />
+                    )}
+                    {isBinarySearch && (
+                      <BinarySearchView
+                        initialArray={[...array].sort((a,b)=>a-b)}
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                        mode={binarySearchMode}
+                      />
+                    )}
+                    {isGraph && (
+                      <GraphView
+                        graph={graph}
+                        setGraph={setGraph}
+                        isEditable={!player.isPlaying && player.currentIndex === 0}
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                      />
+                    )}
+                    {isTree && !isFullscreen && (
+                      <KnapsackView
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                        capacity={knapsackCapacity}
+                        isFullscreen={false}
+                      />
+                    )}
+                    {isTree && isFullscreen && (
+                      <div className="flex flex-col items-center justify-center h-[500px] border border-surfaceHighlight/50 rounded-2xl bg-black/20 text-gray-400 text-sm">
+                        <Maximize2 className="w-8 h-8 mb-3 opacity-50" />
+                        Tree is currently open in fullscreen mode.
+                      </div>
+                    )}
+                    {isMergeSort && isFullscreen && (
+                      <div className="flex flex-col items-center justify-center h-[500px] border border-surfaceHighlight/50 rounded-2xl bg-black/20 text-gray-400 text-sm">
+                        <Maximize2 className="w-8 h-8 mb-3 opacity-50" />
+                        Merge Sort Tree is currently open in fullscreen mode.
+                      </div>
+                    )}
+                    {isNQueens && (
+                      <NQueensView 
+                        n={nQueensSize}
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                        activeSolutionIndex={nQueensFindAll ? nQueensSolutionIndex : undefined}
+                      />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
                 
                 {/* Persistent Live Action Banner */}
                 <div className="w-full mb-6 p-5 bg-gradient-to-r from-surfaceHighlight/50 to-transparent border-l-4 border-accent-blue rounded-r-2xl shadow-lg">
-                  <h3 className="font-display text-[11px] text-accent-blue font-bold mb-1.5 uppercase tracking-widest">Live Action</h3>
-                  <p className="text-base md:text-lg font-display text-gray-100 transition-all duration-300">
-                    {player.currentStep?.description || "Ready to start the algorithm."}
-                  </p>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="ticker-dot inline-block w-2 h-2 rounded-full bg-accent-blue" />
+                    <h3 className="font-display text-[11px] text-accent-blue font-bold uppercase tracking-widest">Live Action</h3>
+                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={`${player.currentIndex}-${player.currentStep?.description}`}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                      className="text-base md:text-lg font-display text-gray-100 min-h-[1.75rem]"
+                    >
+                      {player.currentStep?.description || "Ready to start the algorithm."}
+                    </motion.p>
+                  </AnimatePresence>
 
                   {isNQueens && player.currentIndex === steps.length - 1 && nQueensFindAll && nQueensTotalSolutions > 1 && (
                     <div className="mt-4 flex items-center justify-between bg-black/30 p-2.5 rounded-xl border border-white/10 max-w-sm">
@@ -706,10 +731,10 @@ function App() {
             </div>
             <button 
               onClick={() => setIsFullscreen(false)} 
-              className="p-2 hover:bg-accent-red/20 hover:text-accent-red rounded-lg text-gray-400 transition-colors flex items-center space-x-2 border border-transparent hover:border-accent-red/30"
+              className="group flex items-center gap-2 px-4 py-2 bg-accent-red/10 hover:bg-accent-red/20 border border-accent-red/30 hover:border-accent-red/60 text-accent-red rounded-xl transition-all duration-200 font-semibold text-sm shadow-[0_0_10px_rgba(239,68,68,0.1)] hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]"
             >
-              <span className="text-xs font-bold uppercase">Close</span>
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 transition-transform group-hover:rotate-90 duration-200" />
+              <span>Close</span>
             </button>
           </div>
           
