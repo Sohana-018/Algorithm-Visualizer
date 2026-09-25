@@ -22,6 +22,8 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [drawingEdgeFrom, setDrawingEdgeFrom] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [hasDragged, setHasDragged] = useState(false);
 
   const { activeNode, visitedNodes, queuedNodes } = useMemo(() => {
     const visited = new Set<string>();
@@ -58,7 +60,10 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!isEditable) return;
-    if (drawingEdgeFrom) return;
+    if (drawingEdgeFrom) {
+      setDrawingEdgeFrom(null); // Cancel drawing edge on background click
+      return;
+    }
     
     // Add new node if clicking on background SVG
     if ((e.target as SVGElement).tagName === 'svg') {
@@ -77,17 +82,32 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
     if (!isEditable) return;
     e.stopPropagation();
     
-    if (e.shiftKey) {
-      setDrawingEdgeFrom(nodeId);
-      const rect = containerRef.current!.getBoundingClientRect();
-      setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    } else if (e.button === 2 || e.ctrlKey) {
+    if (drawingEdgeFrom) {
+      if (drawingEdgeFrom !== nodeId) {
+        const edgeExists = graph.edges.some(
+          edge => (edge.source === drawingEdgeFrom && edge.target === nodeId) || 
+                  (edge.target === drawingEdgeFrom && edge.source === nodeId)
+        );
+        if (!edgeExists) {
+          setGraph({
+            ...graph,
+            edges: [...graph.edges, { source: drawingEdgeFrom, target: nodeId }]
+          });
+        }
+      }
+      setDrawingEdgeFrom(null);
+      return;
+    }
+
+    if (e.button === 2 || e.ctrlKey) {
       setGraph({
         nodes: graph.nodes.filter(n => n.id !== nodeId),
         edges: graph.edges.filter(edge => edge.source !== nodeId && edge.target !== nodeId)
       });
     } else {
       setDraggedNode(nodeId);
+      setDragStartPos({ x: e.clientX, y: e.clientY });
+      setHasDragged(false);
       (e.target as Element).setPointerCapture(e.pointerId);
     }
   };
@@ -101,37 +121,31 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
     if (drawingEdgeFrom) {
       setMousePos({ x, y });
     } else if (draggedNode) {
-      setGraph({
-        ...graph,
-        nodes: graph.nodes.map(n => n.id === draggedNode ? { ...n, x, y } : n)
-      });
+      const dx = e.clientX - dragStartPos.x;
+      const dy = e.clientY - dragStartPos.y;
+      if (!hasDragged && Math.sqrt(dx * dx + dy * dy) > 3) {
+        setHasDragged(true);
+      }
+      
+      if (hasDragged || Math.sqrt(dx * dx + dy * dy) > 3) {
+        setGraph({
+          ...graph,
+          nodes: graph.nodes.map(n => n.id === draggedNode ? { ...n, x, y } : n)
+        });
+      }
     }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (draggedNode) {
+      if (!hasDragged) {
+        // Was just a click, start drawing edge
+        setDrawingEdgeFrom(draggedNode);
+        const rect = containerRef.current!.getBoundingClientRect();
+        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      }
       setDraggedNode(null);
       try { (e.target as Element).releasePointerCapture(e.pointerId); } catch(e){}
-    }
-    if (drawingEdgeFrom) {
-      setDrawingEdgeFrom(null);
-    }
-  };
-
-  const handleNodePointerUp = (e: React.PointerEvent, nodeId: string) => {
-    if (drawingEdgeFrom && drawingEdgeFrom !== nodeId) {
-      e.stopPropagation();
-      const edgeExists = graph.edges.some(
-        edge => (edge.source === drawingEdgeFrom && edge.target === nodeId) || 
-                (edge.target === drawingEdgeFrom && edge.source === nodeId)
-      );
-      if (!edgeExists) {
-        setGraph({
-          ...graph,
-          edges: [...graph.edges, { source: drawingEdgeFrom, target: nodeId }]
-        });
-      }
-      setDrawingEdgeFrom(null);
     }
   };
 
@@ -153,9 +167,9 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
 
       {isEditable && (
         <div className="absolute top-4 left-4 bg-black/60 text-xs px-4 py-2 rounded-xl text-gray-300 pointer-events-none font-medium backdrop-blur-md border border-white/5 z-20 shadow-lg">
-          <span className="text-white">Click</span>: Add Node &nbsp;•&nbsp; 
+          <span className="text-white">Click</span>: Add Node / Select &nbsp;•&nbsp; 
           <span className="text-white">Drag</span>: Move &nbsp;•&nbsp; 
-          <span className="text-white">Shift+Drag</span>: Connect &nbsp;•&nbsp; 
+          <span className="text-white">Click 2 Nodes</span>: Connect &nbsp;•&nbsp; 
           <span className="text-white">Right-Click</span>: Delete
         </div>
       )}
@@ -251,7 +265,12 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
             let stroke = "rgba(107, 114, 128, 1)";
             let filter = "none";
 
-            if (isActive) {
+            if (drawingEdgeFrom === node.id) {
+              // Highlight the node being drawn from
+              fill = "rgba(59, 130, 246, 0.4)";
+              stroke = "rgba(59, 130, 246, 1)";
+              filter = "url(#bloom-active-node)";
+            } else if (isActive) {
               fill = "rgba(59, 130, 246, 0.2)";
               stroke = "rgba(59, 130, 246, 1)";
               filter = "url(#bloom-active-node)";
@@ -277,6 +296,7 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
               >
                 <circle
+                  data-node-id={node.id}
                   r={radius}
                   fill={fill}
                   stroke={stroke}
@@ -284,7 +304,6 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
                   filter={filter}
                   className={isEditable ? "cursor-grab active:cursor-grabbing pointer-events-auto" : "pointer-events-auto"}
                   onPointerDown={(e) => handleNodePointerDown(e, node.id)}
-                  onPointerUp={(e) => handleNodePointerUp(e, node.id)}
                 />
                 
                 {/* Subtle external label pill */}

@@ -299,7 +299,7 @@ function App() {
               <div className="w-full p-6 bg-surface/60 border border-surfaceHighlight/80 rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                   <div className="flex items-center space-x-4">
-                    <h2 className="text-2xl font-bold tracking-tight">{activeAlgo.name}</h2>
+                    <h2 className="font-display text-3xl font-bold tracking-tight text-white drop-shadow-md">{activeAlgo.name}</h2>
                     <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold border flex items-center space-x-2 ${
                       isGraph ? 'bg-accent-violet/10 text-accent-violet border-accent-violet/20' : 
                       isTree ? 'bg-accent-green/10 text-accent-green border-accent-green/20' :
@@ -347,7 +347,7 @@ function App() {
                       </div>
 
                       <div className="flex items-center space-x-3 w-full sm:w-auto">
-                        <span className="text-sm font-bold text-gray-300 whitespace-nowrap">Board Size (N): {nQueensSize}</span>
+                        <span className="font-display text-sm font-bold text-gray-300 whitespace-nowrap">Board Size (N): {nQueensSize}</span>
                         <input 
                           type="range" 
                           min="4" 
@@ -502,6 +502,35 @@ function App() {
                   )}
                 </div>
                 
+                {/* Persistent Live Action Banner */}
+                <div className="w-full mb-6 p-5 bg-gradient-to-r from-surfaceHighlight/50 to-transparent border-l-4 border-accent-blue rounded-r-2xl shadow-lg">
+                  <h3 className="font-display text-[11px] text-accent-blue font-bold mb-1.5 uppercase tracking-widest">Live Action</h3>
+                  <p className="text-base md:text-lg font-display text-gray-100 transition-all duration-300">
+                    {player.currentStep?.description || "Ready to start the algorithm."}
+                  </p>
+
+                  {isNQueens && player.currentIndex === steps.length - 1 && nQueensFindAll && nQueensTotalSolutions > 1 && (
+                    <div className="mt-4 flex items-center justify-between bg-black/30 p-2.5 rounded-xl border border-white/10 max-w-sm">
+                      <button 
+                        onClick={() => setNQueensSolutionIndex(Math.max(0, nQueensSolutionIndex - 1))}
+                        disabled={nQueensSolutionIndex === 0}
+                        className="px-4 py-1.5 bg-surfaceHighlight hover:bg-gray-600 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                      >
+                        Prev
+                      </button>
+                      <span className="font-display text-xs font-bold text-gray-300 tracking-wide">
+                        Solution {nQueensSolutionIndex + 1} of {nQueensTotalSolutions}
+                      </span>
+                      <button 
+                        onClick={() => setNQueensSolutionIndex(Math.min(nQueensTotalSolutions - 1, nQueensSolutionIndex + 1))}
+                        disabled={nQueensSolutionIndex === nQueensTotalSolutions - 1}
+                        className="px-4 py-1.5 bg-surfaceHighlight hover:bg-gray-600 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {!isFullscreen && (
                   <Controls 
                     isPlaying={player.isPlaying}
@@ -568,35 +597,10 @@ function App() {
                 </div>
               </div>
 
-              {/* Persistent Live Action & Config Card */}
+              {/* Config & Stats Card */}
               <div className="w-full p-6 bg-gradient-to-br from-surface to-surfaceHighlight/30 rounded-2xl border border-surfaceHighlight/50 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent-amber to-accent-red" />
-                <h3 className="text-[10px] text-gray-500 font-bold mb-2 uppercase tracking-widest">Live Action</h3>
-                <p className="text-sm text-gray-200 font-medium min-h-[3rem] transition-all duration-300 leading-snug">
-                  {player.currentStep?.description || "Ready to start the algorithm."}
-                </p>
-
-                {isNQueens && player.currentIndex === steps.length - 1 && nQueensFindAll && nQueensTotalSolutions > 1 && (
-                  <div className="mt-3 flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5">
-                    <button 
-                      onClick={() => setNQueensSolutionIndex(Math.max(0, nQueensSolutionIndex - 1))}
-                      disabled={nQueensSolutionIndex === 0}
-                      className="px-3 py-1.5 bg-surfaceHighlight/50 hover:bg-surfaceHighlight rounded text-xs font-bold transition-all disabled:opacity-50"
-                    >
-                      Prev
-                    </button>
-                    <span className="text-xs font-bold text-gray-300">
-                      Solution {nQueensSolutionIndex + 1} of {nQueensTotalSolutions}
-                    </span>
-                    <button 
-                      onClick={() => setNQueensSolutionIndex(Math.min(nQueensTotalSolutions - 1, nQueensSolutionIndex + 1))}
-                      disabled={nQueensSolutionIndex === nQueensTotalSolutions - 1}
-                      className="px-3 py-1.5 bg-surfaceHighlight/50 hover:bg-surfaceHighlight rounded text-xs font-bold transition-all disabled:opacity-50"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                <h3 className="font-display text-[10px] text-gray-500 font-bold mb-4 uppercase tracking-widest">Settings & Stats</h3>
                 
                 {isGraph && (
                   <div className="mt-4 pt-4 border-t border-surfaceHighlight/50">

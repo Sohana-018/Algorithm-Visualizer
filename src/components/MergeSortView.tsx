@@ -263,7 +263,7 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
                   if (!node.children || node.children.length === 0 || node.isCollapsed) return null;
                   
                   const sourcePos = nodePositions.get(node.id)!;
-                  const strokeColor = node.status === 'merging' ? 'rgba(139, 92, 246, 0.4)' : 'rgba(107, 114, 128, 0.3)';
+                  const strokeColor = node.status === 'merging' ? '#8b5cf6' : 'rgba(255, 255, 255, 0.15)';
 
                   return node.children.map(child => {
                     const targetPos = nodePositions.get(child.id)!;
@@ -358,11 +358,11 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
                                 className={cn(
                                   "w-7 h-7 flex items-center justify-center text-[12px] font-bold rounded-md border transition-all duration-300",
                                   val === null ? "bg-surface/30 border-dashed border-gray-600/50 text-transparent" : 
-                                  isWinner ? "bg-accent-amber/20 border-accent-amber text-accent-amber shadow-[0_0_12px_rgba(245,158,11,0.6)] z-10 scale-110" :
-                                  isCompared ? "bg-accent-blue/20 border-accent-blue text-accent-blue shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10" :
-                                  isMerged ? "bg-accent-green/20 border-accent-green/50 text-accent-green" :
-                                  isDone ? "bg-surfaceHighlight border-gray-500/50 text-gray-200" :
-                                  "bg-surfaceHighlight/50 border-gray-600/30 text-gray-400"
+                                  isWinner ? "bg-gradient-to-t from-accent-amber/40 to-accent-amber/20 border-accent-amber text-accent-amber shadow-[0_0_12px_rgba(245,158,11,0.6)] z-10 scale-110" :
+                                  isCompared ? "bg-gradient-to-t from-accent-blue/40 to-accent-blue/20 border-accent-blue text-accent-blue shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10" :
+                                  isMerged ? "bg-gradient-to-b from-accent-green/40 to-accent-green/10 border-accent-green/50 text-accent-green shadow-[0_0_10px_rgba(16,185,129,0.3)]" :
+                                  isDone ? "bg-gradient-to-b from-surfaceHighlight to-surface border-gray-500/50 text-gray-200 shadow-md" :
+                                  "bg-gradient-to-b from-surfaceHighlight/50 to-surface/50 border-gray-600/30 text-gray-400"
                                 )}
                               >
                                 {val !== null ? val : ''}

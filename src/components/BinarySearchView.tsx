@@ -114,11 +114,11 @@ function IterativeView({ initialArray, steps, currentIndex }: Omit<BinarySearchV
               <motion.div
                 layout
                 className={cn(
-                  "w-12 rounded-t-md transition-all duration-300 relative flex flex-col justify-end overflow-hidden",
-                  isFound ? "bg-accent-green shadow-[0_0_15px_rgba(34,197,94,0.5)]" :
-                  isMid ? "bg-accent-blue shadow-[0_0_15px_rgba(59,130,246,0.5)]" :
-                  isEliminated ? "bg-surfaceHighlight/30 opacity-30 grayscale" :
-                  "bg-surfaceHighlight"
+                  "w-12 rounded-t-lg transition-all duration-300 relative flex flex-col justify-end overflow-hidden border-t border-l border-r",
+                  isFound ? "bg-gradient-to-t from-accent-green/40 to-accent-green shadow-[0_0_20px_rgba(34,197,94,0.6)] border-accent-green/50" :
+                  isMid ? "bg-gradient-to-t from-accent-blue/40 to-accent-blue shadow-[0_0_20px_rgba(59,130,246,0.6)] border-accent-blue/50" :
+                  isEliminated ? "bg-surfaceHighlight/20 border-white/5 opacity-30 grayscale" :
+                  "bg-gradient-to-t from-surfaceHighlight/50 to-surfaceHighlight/80 border-white/10 shadow-lg"
                 )}
                 style={{ height: `${Math.max(heightPct, 10)}%` }}
               >

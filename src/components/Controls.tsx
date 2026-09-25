@@ -38,21 +38,21 @@ export function Controls({
 }: ControlsProps) {
   return (
     <div className="w-full bg-surface/80 backdrop-blur-md border border-surfaceHighlight p-4 rounded-2xl flex flex-col space-y-4 shadow-xl">
-      {/* Timeline */}
       <div className="flex items-center space-x-3 w-full group relative">
         <span className="text-xs text-gray-400 font-mono w-10 text-right">{currentIndex}</span>
-        <div className="relative flex-1 h-3 bg-gray-800 rounded-full overflow-hidden cursor-pointer shadow-inner">
+        <div className="relative flex-1 flex items-center">
+          {/* Track background fill for progress */}
+          <div 
+            className="absolute left-0 h-1 bg-gradient-to-r from-accent-blue to-accent-violet rounded-full pointer-events-none transition-all duration-150 ease-out z-0"
+            style={{ width: `${(progress * 100)}%` }}
+          />
           <input
             type="range"
             min={0}
             max={Math.max(0, totalSteps - 1)}
             value={currentIndex}
             onChange={(e) => onJumpTo(Number(e.target.value))}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-          />
-          <div 
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-accent-blue to-accent-violet pointer-events-none transition-all duration-150 ease-out"
-            style={{ width: `${(progress * 100)}%` }}
+            className="custom-slider relative z-10"
           />
         </div>
         <span className="text-xs text-gray-400 font-mono w-10">{Math.max(0, totalSteps - 1)}</span>
@@ -110,7 +110,7 @@ export function Controls({
             step="0.5"
             value={speed}
             onChange={(e) => onSpeedChange(Number(e.target.value))}
-            className="w-24 accent-accent-blue cursor-pointer"
+            className="custom-slider w-24"
           />
           <span className="text-xs font-mono text-gray-300 w-8">{speed}x</span>
         </div>
