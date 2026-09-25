@@ -12,14 +12,8 @@ export function usePlayer(steps: AlgorithmStep[], defaultSpeed: number = 1) {
   const currentInterval = baseInterval / speed;
 
   const play = useCallback(() => {
-    setCurrentIndex((prev) => {
-      if (prev >= steps.length - 1 && steps.length > 0) {
-        return 0; // Auto-restart if already at the end
-      }
-      return prev;
-    });
     setIsPlaying(true);
-  }, [steps.length]);
+  }, []);
   const pause = useCallback(() => setIsPlaying(false), []);
   
   const reset = useCallback(() => {

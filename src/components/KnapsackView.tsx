@@ -229,18 +229,19 @@ export function KnapsackView({ steps, currentIndex, capacity, isFullscreen = fal
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_100%)] z-0 pointer-events-none" />
       <div className="absolute inset-0 opacity-20 z-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
-      <div className="absolute top-4 left-4 z-20 flex flex-col space-y-2 pointer-events-none">
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/5 shadow-lg text-sm pointer-events-auto">
-          <span className="text-gray-400">Best Value: </span>
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex flex-col space-y-2 pointer-events-none">
+        <div className="bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl border border-accent-green/30 shadow-[0_10px_30px_rgba(16,185,129,0.15)] text-base pointer-events-auto flex items-center justify-center gap-3">
+          <span className="text-gray-300 font-medium tracking-wide">Best Value: </span>
           <motion.span 
             key={bestValue}
             initial={{ scale: 1.5, color: '#f59e0b' }}
             animate={{ scale: 1, color: '#10b981' }}
-            className="font-bold text-accent-green inline-block drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+            className="font-black text-2xl text-accent-green inline-block drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]"
           >
             ${bestValue.toFixed(2)}
           </motion.span>
-          <span className="text-gray-400 ml-2">/ Cap: {capacity}</span>
+          <div className="h-4 w-px bg-white/20 mx-1" />
+          <span className="text-gray-400 font-medium text-sm">Cap: {capacity}</span>
         </div>
       </div>
 

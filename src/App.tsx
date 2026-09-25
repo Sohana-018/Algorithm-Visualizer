@@ -16,7 +16,7 @@ import { generateBinarySearchIterativeSteps, generateBinarySearchRecursiveSteps,
 import { generateBfsSteps, generateDfsSteps, bfsCode, dfsCode } from './algorithms/graph';
 import { generateKnapsackSteps, knapsackCode } from './algorithms/knapsack';
 import { generateNQueensSteps, nQueensCode } from './algorithms/nqueens';
-import { Maximize2, X, Activity, GitMerge, Search, GitCommit, GitPullRequest, Box, Menu, ChevronDown, Crown } from 'lucide-react';
+import { Maximize2, X, Activity, GitMerge, Search, GitCommit, GitPullRequest, Box, Menu, ChevronDown, ChevronUp, Crown } from 'lucide-react';
 import type { AlgorithmType } from './types';
 import type { GraphData } from './algorithms/graph';
 import type { KnapsackItem } from './algorithms/knapsack';
@@ -120,6 +120,7 @@ function App() {
   
   // UI State
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenControls, setShowFullscreenControls] = useState(true);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'complexity' | 'code'>('complexity');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -756,23 +757,44 @@ function App() {
               />
             )}
             
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl z-30 drop-shadow-2xl">
-              <div className="bg-[#0B0F19]/80 backdrop-blur-2xl p-4 rounded-3xl border border-surfaceHighlight/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                <Controls 
-                  isPlaying={player.isPlaying}
-                  progress={player.progress}
-                  speed={player.speed}
-                  totalSteps={player.totalSteps}
-                  currentIndex={player.currentIndex}
-                  onPlay={player.play}
-                  onPause={player.pause}
-                  onReset={player.reset}
-                  onSpeedChange={player.setSpeed}
-                  onStepForward={player.stepForward}
-                  onStepBackward={player.stepBackward}
-                  onJumpTo={player.jumpTo}
-                />
-              </div>
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl z-30 drop-shadow-2xl flex flex-col items-center">
+              <button
+                onClick={() => setShowFullscreenControls(!showFullscreenControls)}
+                className="mb-4 px-4 py-2 bg-[#0B0F19]/80 hover:bg-[#0B0F19] text-gray-300 hover:text-white border border-surfaceHighlight/50 rounded-full backdrop-blur-md text-xs font-bold transition-all shadow-lg flex items-center space-x-2"
+              >
+                {showFullscreenControls ? (
+                  <><span>Hide Controls</span><ChevronDown className="w-4 h-4" /></>
+                ) : (
+                  <><span>Show Controls</span><ChevronUp className="w-4 h-4" /></>
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showFullscreenControls && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    className="w-full bg-[#0B0F19]/80 backdrop-blur-2xl p-4 rounded-3xl border border-surfaceHighlight/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                  >
+                    <Controls 
+                      isPlaying={player.isPlaying}
+                      progress={player.progress}
+                      speed={player.speed}
+                      totalSteps={player.totalSteps}
+                      currentIndex={player.currentIndex}
+                      onPlay={player.play}
+                      onPause={player.pause}
+                      onReset={player.reset}
+                      onSpeedChange={player.setSpeed}
+                      onStepForward={player.stepForward}
+                      onStepBackward={player.stepBackward}
+                      onJumpTo={player.jumpTo}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>

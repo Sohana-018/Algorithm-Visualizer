@@ -81,7 +81,10 @@ export function generateBfsSteps(graph: GraphData, startNodeId: string): GraphSt
     }
   }
 
-  steps.push({ type: 'complete', description: 'BFS traversal complete!', lines: [17] });
+  const traversalOrder = steps
+    .filter(s => s.type === 'visit')
+    .map(s => (s as any).node as string);
+  steps.push({ type: 'complete', traversalOrder, description: `BFS complete! Traversal order: ${traversalOrder.join(' → ')}`, lines: [17] });
   return steps;
 }
 
@@ -110,6 +113,9 @@ export function generateDfsSteps(graph: GraphData, startNodeId: string): GraphSt
   }
 
   dfs(startNodeId);
-  steps.push({ type: 'complete', description: 'DFS traversal complete!', lines: [10] });
+  const traversalOrder = steps
+    .filter(s => s.type === 'visit')
+    .map(s => (s as any).node as string);
+  steps.push({ type: 'complete', traversalOrder, description: `DFS complete! Traversal order: ${traversalOrder.join(' → ')}`, lines: [10] });
   return steps;
 }

@@ -11,7 +11,8 @@ export type GraphStep =
   | { type: 'visit'; node: string; description: string; lines?: number[] }
   | { type: 'enqueue'; node: string; description: string; lines?: number[] }
   | { type: 'dequeue'; node: string; description: string; lines?: number[] }
-  | { type: 'complete'; description: string; lines?: number[] };
+  | { type: 'complete'; traversalOrder: string[]; description: string; lines?: number[] };
+
 
 export type KnapsackStep = 
   | { type: 'createNode'; id: string; parentId: string | null; level: number; weight: number; value: number; bound: number; isInclude: boolean | null; description: string; lines?: number[] }

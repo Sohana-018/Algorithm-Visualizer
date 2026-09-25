@@ -25,10 +25,12 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [hasDragged, setHasDragged] = useState(false);
 
-  const { activeNode, visitedNodes, queuedNodes } = useMemo(() => {
+  const { activeNode, visitedNodes, queuedNodes, traversalOrder, isComplete } = useMemo(() => {
     const visited = new Set<string>();
     const queued = new Set<string>();
     let active = null;
+    let traversalOrder: string[] = [];
+    let isComplete = false;
 
     for (let i = 0; i <= currentIndex; i++) {
       const step = steps[i];
@@ -43,9 +45,12 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
         active = step.node;
       } else if (step.type === 'dequeue') {
         queued.delete(step.node);
+      } else if (step.type === 'complete') {
+        traversalOrder = step.traversalOrder;
+        isComplete = true;
       }
     }
-    return { activeNode: active, visitedNodes: visited, queuedNodes: queued };
+    return { activeNode: active, visitedNodes: visited, queuedNodes: queued, traversalOrder, isComplete };
   }, [steps, currentIndex]);
 
   const degrees = useMemo(() => {
@@ -329,6 +334,50 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
           })}
         </AnimatePresence>
       </svg>
+
+      {/* Traversal Order Result Banner */}
+      <AnimatePresence>
+        {isComplete && traversalOrder.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="absolute bottom-4 left-4 right-4 z-20 pointer-events-none"
+          >
+            <div className="bg-black/70 backdrop-blur-xl border border-accent-green/40 rounded-2xl px-5 py-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
+                <span className="text-[11px] font-bold uppercase tracking-widest text-accent-green">Traversal Complete</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {traversalOrder.map((nodeId, i) => (
+                  <React.Fragment key={i}>
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.7 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05, type: 'spring', stiffness: 400, damping: 20 }}
+                      className="px-2.5 py-1 rounded-lg bg-accent-violet/20 border border-accent-violet/40 text-accent-violet text-sm font-bold shadow-[0_0_8px_rgba(139,92,246,0.3)]"
+                    >
+                      {nodeId}
+                    </motion.span>
+                    {i < traversalOrder.length - 1 && (
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.05 + 0.03 }}
+                        className="text-gray-500 text-sm font-bold select-none"
+                      >
+                        →
+                      </motion.span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
