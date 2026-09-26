@@ -1,10 +1,15 @@
-export type AlgorithmType = 'bubble' | 'merge' | 'binarySearch' | 'bfs' | 'dfs' | 'knapsack' | 'nqueens';
+export type AlgorithmType = 'bubble' | 'merge' | 'binarySearch' | 'bfs' | 'dfs' | 'nqueens' | 'selection' | 'insertion' | 'activitySelection';
 
 export type ArrayStep = 
   | { type: 'compare'; indices: [number, number]; description: string; lines?: number[] }
   | { type: 'swap'; indices: [number, number]; description: string; lines?: number[] }
   | { type: 'overwrite'; index: number; value: number; description: string; lines?: number[] }
   | { type: 'found'; index: number; description: string; lines?: number[] }
+  | { type: 'mark-min'; index: number; description: string; lines?: number[] }
+  | { type: 'mark-sorted'; index: number; description: string; lines?: number[] }
+  | { type: 'lift'; index: number; description: string; lines?: number[] }
+  | { type: 'shift'; index: number; description: string; lines?: number[] }
+  | { type: 'insert'; index: number; value: number; description: string; lines?: number[] }
   | { type: 'complete'; description: string; lines?: number[] };
 
 export type GraphStep = 
@@ -12,13 +17,6 @@ export type GraphStep =
   | { type: 'enqueue'; node: string; description: string; lines?: number[] }
   | { type: 'dequeue'; node: string; description: string; lines?: number[] }
   | { type: 'complete'; traversalOrder: string[]; description: string; lines?: number[] };
-
-
-export type KnapsackStep = 
-  | { type: 'createNode'; id: string; parentId: string | null; level: number; weight: number; value: number; bound: number; isInclude: boolean | null; description: string; lines?: number[] }
-  | { type: 'prune'; id: string; reason: string; description: string; lines?: number[] }
-  | { type: 'updateBest'; bestValue: number; bestNodeId: string; description: string; lines?: number[] }
-  | { type: 'complete'; description: string; lines?: number[] };
 
 export type MergeSortStep = 
   | { type: 'split'; parentId: string; leftChildId: string; rightChildId: string; leftArr: number[]; rightArr: number[]; description: string; lines?: number[] }
@@ -43,7 +41,21 @@ export type NQueensStep =
   | { type: 'solution-found'; queens: {row: number, col: number}[]; description: string; lines?: number[] }
   | { type: 'complete'; description: string; lines?: number[] };
 
-export type AlgorithmStep = ArrayStep | GraphStep | KnapsackStep | MergeSortStep | BinarySearchStep | NQueensStep;
+export interface ActivityData {
+  id: string;
+  label: string;
+  start: number;
+  end: number;
+}
+
+export type ActivitySelectionStep = 
+  | { type: 'sort-by-end-time'; description: string; lines?: number[] }
+  | { type: 'consider'; activityId: string; description: string; lines?: number[] }
+  | { type: 'select'; activityId: string; lastEndTime: number; description: string; lines?: number[] }
+  | { type: 'reject'; activityId: string; conflictsWith: string; description: string; lines?: number[] }
+  | { type: 'complete'; selectedIds: string[]; count: number; description: string; lines?: number[] };
+
+export type AlgorithmStep = ArrayStep | GraphStep | MergeSortStep | BinarySearchStep | NQueensStep | ActivitySelectionStep;
 
 export interface AlgorithmVisualizerProps {
   onStep: (step: AlgorithmStep) => void;

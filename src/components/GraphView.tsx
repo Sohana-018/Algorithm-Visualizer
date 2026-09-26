@@ -89,7 +89,7 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
     const minX = Math.min(...xs) - NODE_PADDING;
     const minY = Math.min(...ys) - NODE_PADDING;
     const maxX = Math.max(...xs) + NODE_PADDING;
-    const maxY = Math.max(...ys) + NODE_PADDING;
+    const maxY = Math.max(...ys) + 140; // Extra padding at bottom so banners don't overlap nodes
     const bw = maxX - minX;
     const bh = maxY - minY;
     const s = Math.min(w / bw, h / bh, 1.5); // never zoom in more than 1.5×
@@ -168,6 +168,7 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
       setPanStart({ x: e.clientX, y: e.clientY, tx, ty });
       setIsPanning(true);
       setHasDragged(false);
+      setIsManualPan(true);
       (e.target as Element).setPointerCapture(e.pointerId);
     }
   };
@@ -237,6 +238,7 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
   const handleNodePointerDown = (e: React.PointerEvent, nodeId: string) => {
     if (!isEditable) return;
     e.stopPropagation();
+    setIsManualPan(true);
 
     if (drawingEdgeFrom) {
       if (drawingEdgeFrom !== nodeId) {
@@ -287,41 +289,17 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_100%)] z-0 pointer-events-none" />
       <div className="absolute inset-0 opacity-20 z-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
-      {/* ── Collapsible instructions icon (top-right, never overlaps graph) ── */}
+      {/* ── Permanent instructions banner (always visible in edit mode) ── */}
       {isEditable && (
-        <div className="absolute top-3 right-3 z-30">
-          <div className="relative">
-            <button
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors backdrop-blur-md shadow-lg"
-              onMouseEnter={() => setShowHelp(true)}
-              onMouseLeave={() => setShowHelp(false)}
-              onClick={() => setShowHelp(v => !v)}
-              title="Controls"
-            >
-              <HelpCircle className="w-4 h-4" />
-            </button>
-            <AnimatePresence>
-              {showHelp && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.92, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full right-0 mt-2 w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-xs text-gray-300 shadow-2xl pointer-events-none z-40"
-                >
-                  <p className="font-semibold text-white mb-1.5">Graph Controls</p>
-                  <ul className="space-y-1">
-                    <li><span className="text-white font-medium">Click canvas</span> — add node</li>
-                    <li><span className="text-white font-medium">Drag canvas</span> — pan view</li>
-                    <li><span className="text-white font-medium">Scroll</span> — zoom in / out</li>
-                    <li><span className="text-white font-medium">Click node</span> — start edge</li>
-                    <li><span className="text-white font-medium">Click 2nd node</span> — connect</li>
-                    <li><span className="text-white font-medium">Drag node</span> — move it</li>
-                    <li><span className="text-white font-medium">Right-click node</span> — delete</li>
-                  </ul>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-5 py-2.5 shadow-xl flex items-center gap-4 text-xs font-medium text-gray-300">
+            <span><span className="text-white">Click</span> canvas to add node</span>
+            <span className="w-1 h-1 rounded-full bg-gray-600" />
+            <span><span className="text-white">Drag</span> node to move</span>
+            <span className="w-1 h-1 rounded-full bg-gray-600" />
+            <span><span className="text-white">Click 2 nodes</span> to connect</span>
+            <span className="w-1 h-1 rounded-full bg-gray-600" />
+            <span><span className="text-white">Right-click</span> to delete</span>
           </div>
         </div>
       )}
@@ -370,7 +348,24 @@ export function GraphView({ graph, setGraph, isEditable, steps = [], currentInde
             const strokeColor = isTraversed ? 'rgba(139,92,246,0.6)' : 'rgba(75,85,99,0.4)';
 
             return (
-              <g key={`${edge.source}-${edge.target}`} className="pointer-events-none">
+              <g 
+                key={`${edge.source}-${edge.target}`} 
+                className={isEditable ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}
+                onPointerDown={(e) => {
+                  if (!isEditable) return;
+                  e.stopPropagation();
+                  setIsManualPan(true);
+                  if (e.button === 2 || e.ctrlKey) {
+                    setGraph({
+                      ...graph,
+                      edges: graph.edges.filter(
+                        eg => !(eg.source === edge.source && eg.target === edge.target) &&
+                              !(eg.source === edge.target && eg.target === edge.source)
+                      )
+                    });
+                  }
+                }}
+              >
                 <motion.line
                   x1={source.x} y1={source.y} x2={target.x} y2={target.y}
                   stroke={strokeColor}

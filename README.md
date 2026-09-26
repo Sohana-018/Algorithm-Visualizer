@@ -4,7 +4,7 @@ A stunning, interactive algorithm visualization tool built with React, TypeScrip
 
 ## ✨ Features
 
-- **7 Core Algorithms**: Visualized across diverse data structures (Arrays, Graphs, Trees, and Chessboards).
+- **9 Core Algorithms**: Visualized across diverse data structures (Arrays, Graphs, Trees, and Chessboards).
 - **Physics-Based Animations**: Smooth, highly-polished transitions powered by Framer Motion.
 - **Granular Playback Controls**: Play, pause, step forward, step backward, and adjust execution speed on the fly.
 - **Live Action Tracking**: Real-time code execution highlights mapping directly to the visualizer state.
@@ -15,12 +15,14 @@ A stunning, interactive algorithm visualization tool built with React, TypeScrip
 ## 🚀 Supported Algorithms
 
 1. **Bubble Sort**: Watch the classic sorting algorithm bubble the largest elements to the top via continuous swaps.
-2. **Merge Sort**: Visualize the divide-and-conquer strategy natively via a dynamic, scalable Recursion Tree!
-3. **Binary Search**: Features an interactive toggle between **Iterative** (Array pointer view) and **Recursive** (Physical Call Stack visualization) modes.
-4. **Breadth-First Search (BFS)**: Watch the algorithm ripple through graph nodes, tracking queues and discovered paths.
-5. **Depth-First Search (DFS)**: Follow the deep dive into paths before backtracking, visualizing the call stack's traversal footprint.
-6. **0/1 Knapsack (Branch & Bound)**: Unravel the complex backtracking decision tree, featuring live active/pruned node coloring and real-time optimal value tracking.
-7. **N-Queens**: A beautiful Chessboard visualizer for the backtracking classic. Features:
+2. **Selection Sort**: See the algorithm iteratively scan for the absolute minimum value and place it in its final sorted position.
+3. **Insertion Sort**: Visualize elements being picked up and cleanly inserted into their correct place in the growing sorted section.
+4. **Merge Sort**: Visualize the divide-and-conquer strategy natively via a dynamic, scalable Recursion Tree!
+5. **Binary Search**: Features an interactive toggle between **Iterative** (Array pointer view) and **Recursive** (Physical Call Stack visualization) modes.
+6. **Breadth-First Search (BFS)**: Watch the algorithm ripple through graph nodes, tracking queues and discovered paths.
+7. **Depth-First Search (DFS)**: Follow the deep dive into paths before backtracking, visualizing the call stack's traversal footprint.
+8. **Activity Selection (Greedy)**: A custom Gantt-chart timeline visualizer that elegantly solves the scheduling problem by sorting and greedily packing non-overlapping tasks.
+9. **N-Queens**: A beautiful Chessboard visualizer for the backtracking classic. Features:
     - Adjustable board sizes (4x4 to 10x10).
     - Explicit conflict rendering (Math breakdown of column and diagonal threats).
     - **All Solutions Mode**: Let the algorithm discover every valid board state and browse through them once complete.

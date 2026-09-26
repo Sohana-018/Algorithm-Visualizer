@@ -16,8 +16,6 @@ interface ComplexityPanelProps {
   steps: AlgorithmStep[];
   currentIndex: number;
   n: number;
-  /** When in LC mode: the node count FIFO would have explored, for comparison */
-  fifoNodeCount?: number | null;
 }
 
 /** Animates a number from its previous value to a new value */
@@ -42,19 +40,20 @@ function AnimatedNumber({ value }: { value: number }) {
   );
 }
 
-export function ComplexityPanel({ info, steps, currentIndex, n, fifoNodeCount = null }: ComplexityPanelProps) {
-  const { comparisons, swaps, visited, createdNodes, prunedNodes } = useMemo(() => {
-    let comps = 0, swps = 0, vis = 0, created = 0, pruned = 0;
+export function ComplexityPanel({ info, steps, currentIndex, n }: ComplexityPanelProps) {
+  const { comparisons, swaps, visited, considered, selected, rejected } = useMemo(() => {
+    let comps = 0, swps = 0, vis = 0, cons = 0, sel = 0, rej = 0;
     for (let i = 0; i <= currentIndex; i++) {
       const step = steps[i];
       if (!step) continue;
       if (step.type === 'compare') comps++;
       if (step.type === 'swap') swps++;
       if (step.type === 'visit') vis++;
-      if (step.type === 'createNode') created++;
-      if (step.type === 'prune') pruned++;
+      if (step.type === 'consider') cons++;
+      if (step.type === 'select') sel++;
+      if (step.type === 'reject') rej++;
     }
-    return { comparisons: comps, swaps: swps, visited: vis, createdNodes: created, prunedNodes: pruned };
+    return { comparisons: comps, swaps: swps, visited: vis, considered: cons, selected: sel, rejected: rej };
   }, [steps, currentIndex]);
 
   const progress = steps.length > 0 ? (currentIndex / Math.max(1, steps.length - 1)) * 100 : 0;
@@ -72,16 +71,6 @@ export function ComplexityPanel({ info, steps, currentIndex, n, fifoNodeCount = 
       }
     } else if (visited > 0) {
       analysis = `For |V|=n=${n}, you visited ${visited} nodes.`;
-    } else if (createdNodes > 0) {
-      analysis = `For n=${n} items, ${createdNodes} nodes were explored out of theoretical max ${Math.pow(2, n + 1) - 1}.`;
-      if (prunedNodes > 0) {
-        analysis += ` Pruned ${prunedNodes} branches, saving lots of computation.`;
-      }
-      // LC vs FIFO comparison
-      if (fifoNodeCount !== null && fifoNodeCount > 0) {
-        const saved = fifoNodeCount - createdNodes;
-        analysis += ` LC explored ${createdNodes} nodes vs FIFO's ${fifoNodeCount} nodes — ${saved > 0 ? `${saved} fewer nodes = less wasted computation` : 'similar node counts for this input'}.`;
-      }
     }
   }
 
@@ -141,8 +130,9 @@ export function ComplexityPanel({ info, steps, currentIndex, n, fifoNodeCount = 
           {comparisons > 0 && <StatBadge label="Compares" value={comparisons} />}
           {swaps > 0 && <StatBadge label="Swaps" value={swaps} />}
           {visited > 0 && <StatBadge label="Nodes Visited" value={visited} />}
-          {createdNodes > 0 && <StatBadge label="Nodes Explored" value={createdNodes} />}
-          {prunedNodes > 0 && <StatBadge label="Branches Pruned" value={prunedNodes} />}
+          {considered > 0 && <StatBadge label="Considered" value={considered} />}
+          {selected > 0 && <StatBadge label="Selected" value={selected} />}
+          {rejected > 0 && <StatBadge label="Rejected" value={rejected} />}
         </div>
       </div>
 

@@ -5,7 +5,6 @@ import { ArrayView } from './components/ArrayView';
 import { MergeSortView } from './components/MergeSortView';
 import { BinarySearchView } from './components/BinarySearchView';
 import { GraphView } from './components/GraphView';
-import { KnapsackView } from './components/KnapsackView';
 import { NQueensView } from './components/NQueensView';
 import { Controls } from './components/Controls';
 import { CodePanel } from './components/CodePanel';
@@ -14,12 +13,14 @@ import { generateBubbleSortSteps, bubbleSortCode } from './algorithms/bubbleSort
 import { generateMergeSortSteps, mergeSortCode } from './algorithms/mergeSort';
 import { generateBinarySearchIterativeSteps, generateBinarySearchRecursiveSteps, binarySearchIterativeCode, binarySearchRecursiveCode } from './algorithms/binarySearch';
 import { generateBfsSteps, generateDfsSteps, bfsCode, dfsCode } from './algorithms/graph';
-import { generateKnapsackSteps, generateKnapsackLCSteps, knapsackFifoCode, knapsackLCCode, knapsackCode } from './algorithms/knapsack';
 import { generateNQueensSteps, nQueensCode } from './algorithms/nqueens';
-import { Maximize2, X, Activity, GitMerge, Search, GitCommit, GitPullRequest, Box, Menu, ChevronDown, ChevronUp, Crown } from 'lucide-react';
-import type { AlgorithmType } from './types';
+import { generateSelectionSortSteps, selectionSortCode } from './algorithms/selectionSort';
+import { generateInsertionSortSteps, insertionSortCode } from './algorithms/insertionSort';
+import { generateActivitySelectionSteps, activitySelectionCode } from './algorithms/activitySelection';
+import { ActivitySelectionView } from './components/ActivitySelectionView';
+import { Maximize2, X, Activity, GitMerge, Search, GitCommit, GitPullRequest, Menu, ChevronDown, ChevronUp, Crown } from 'lucide-react';
+import type { AlgorithmType, ActivityData } from './types';
 import type { GraphData } from './algorithms/graph';
-import type { KnapsackItem } from './algorithms/knapsack';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -42,11 +43,16 @@ const initialGraph: GraphData = {
   ]
 };
 
-const initialKnapsackItems: KnapsackItem[] = [
-  { weight: 2, value: 40 }, { weight: 3.14, value: 50 }, { weight: 1.98, value: 100 },
-  { weight: 5, value: 95 }, { weight: 3, value: 30 }
-];
 
+const defaultActivities: ActivityData[] = [
+  { id: '1', label: 'A', start: 1, end: 4 },
+  { id: '2', label: 'B', start: 3, end: 5 },
+  { id: '3', label: 'C', start: 0, end: 6 },
+  { id: '4', label: 'D', start: 5, end: 7 },
+  { id: '5', label: 'E', start: 3, end: 9 },
+  { id: '6', label: 'F', start: 5, end: 9 },
+  { id: '7', label: 'G', start: 8, end: 11 },
+];
 const algorithms = [
   { 
     id: 'bubble', name: 'Bubble Sort', type: 'array', icon: Activity, complexity: 'O(n²)', code: bubbleSortCode,
@@ -55,6 +61,15 @@ const algorithms = [
   { 
     id: 'merge', name: 'Merge Sort', type: 'array', icon: GitMerge, complexity: 'O(n log n)', code: mergeSortCode,
     info: { best: "Ω(n log n)", average: "Θ(n log n)", worst: "O(n log n)", space: "O(n)", explanation: "Always recursively splits and merges, resulting in O(n log n) across all cases." }
+  },
+
+  { 
+    id: 'selection', name: 'Selection Sort', type: 'array', icon: Activity, complexity: 'O(n²)', code: selectionSortCode,
+    info: { best: "Ω(n²)", average: "Θ(n²)", worst: "O(n²)", space: "O(1)", explanation: "Always scans the remaining unsorted portion to find the minimum. Does NOT benefit from an already-sorted array." }
+  },
+  { 
+    id: 'insertion', name: 'Insertion Sort', type: 'array', icon: Activity, complexity: 'O(n²)', code: insertionSortCode,
+    info: { best: "Ω(n)", average: "Θ(n²)", worst: "O(n²)", space: "O(1)", explanation: "Builds sorted array one element at a time. Best case: already sorted (O(n)). Worst case: reverse sorted." }
   },
   { 
     id: 'binarySearch', name: 'Binary Search', type: 'array', icon: Search, complexity: 'O(log n)', code: binarySearchIterativeCode,
@@ -68,20 +83,21 @@ const algorithms = [
     id: 'dfs', name: 'Depth-First Search', type: 'graph', icon: GitPullRequest, complexity: 'O(V + E)', code: dfsCode,
     info: { best: "Ω(V + E)", average: "Θ(V + E)", worst: "O(V + E)", space: "O(V)", explanation: "Explores each vertex and edge once deep into paths before backtracking. Space O(V) for call stack." }
   },
-  { 
-    id: 'knapsack', name: '0/1 Knapsack', type: 'tree', icon: Box, complexity: 'O(2ⁿ)', code: knapsackCode,
-    info: { best: "Ω(n)", average: "Better than O(2ⁿ)", worst: "O(2ⁿ)", space: "O(n)", explanation: "Worst O(2ⁿ), but Average is much better in practice due to pruning bounding out suboptimal branches. LC (Best-First) mode typically explores far fewer nodes than FIFO by always expanding the most promising branch first." }
-  },
+
   {
     id: 'nqueens', name: 'N-Queens', type: 'backtracking', icon: Crown, complexity: 'O(N!)', code: nQueensCode,
-    info: { best: "Ω(N)", average: "Better than O(N!)", worst: "O(N!)", space: "O(N)", explanation: "Like the Knapsack problem, N-Queens uses backtracking to prune invalid branches early, drastically reducing the search space." }
+    info: { best: "Ω(N)", average: "Better than O(N!)", worst: "O(N!)", space: "O(N)", explanation: "N-Queens uses backtracking to prune invalid branches early — as soon as a queen placement creates a conflict, that entire branch is abandoned without exploring further, drastically reducing the search space compared to checking every possible arrangement." }
+  },
+  {
+    id: 'activitySelection', name: 'Activity Selection', type: 'greedy', icon: Crown, complexity: 'O(n log n)', code: activitySelectionCode,
+    info: { best: "Ω(n log n)", average: "Θ(n log n)", worst: "O(n log n)", space: "O(1)", explanation: "Always picking the activity that finishes earliest leaves the most room for future activities — this greedy choice is provably optimal here." }
   },
 ];
 
 function App() {
   const [activeAlgoId, setActiveAlgoId] = useState<AlgorithmType>('bubble');
   const [binarySearchMode, setBinarySearchMode] = useState<'iterative' | 'recursive'>('iterative');
-  const [knapsackMode, setKnapsackMode] = useState<'fifo' | 'lc'>('fifo');
+
   
   let activeAlgo = algorithms.find(a => a.id === activeAlgoId)!;
   if (activeAlgoId === 'binarySearch') {
@@ -98,13 +114,7 @@ function App() {
     };
   }
 
-  // Update knapsack code shown in Code Panel to match current mode
-  if (activeAlgoId === 'knapsack') {
-    activeAlgo = {
-      ...activeAlgo,
-      code: knapsackMode === 'fifo' ? knapsackFifoCode : knapsackLCCode,
-    };
-  }
+
   
   // State for Arrays
   const [array, setArray] = useState(() => generateRandomArray());
@@ -116,16 +126,14 @@ function App() {
   const [graph, setGraph] = useState<GraphData>(initialGraph);
   const [startNodeId, setStartNodeId] = useState('A');
 
-  // State for Knapsack
-  const [knapsackItems, setKnapsackItems] = useState<KnapsackItem[]>(initialKnapsackItems);
-  const [knapsackCapacity, setKnapsackCapacity] = useState<number>(10);
-  const [newItemW, setNewItemW] = useState('');
-  const [newItemV, setNewItemV] = useState('');
-  
+
   // State for N-Queens
   const [nQueensSize, setNQueensSize] = useState<number>(8);
   const [nQueensFindAll, setNQueensFindAll] = useState<boolean>(false);
   const [nQueensSolutionIndex, setNQueensSolutionIndex] = useState<number>(0);
+
+  // State for Activity Selection
+  const [activities, setActivities] = useState<ActivityData[]>(defaultActivities);
   
   // UI State
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -156,7 +164,10 @@ function App() {
   const steps = useMemo(() => {
     switch (activeAlgoId) {
       case 'bubble': return generateBubbleSortSteps(array);
+      case 'selection': return generateSelectionSortSteps(array);
+      case 'insertion': return generateInsertionSortSteps(array);
       case 'merge': return generateMergeSortSteps(array);
+      case 'activitySelection': return generateActivitySelectionSteps(activities);
       case 'binarySearch': {
         const sorted = [...array].sort((a, b) => a - b);
         const target = binarySearchTarget ?? (sorted[Math.floor(Math.random() * sorted.length)] || sorted[0]);
@@ -166,60 +177,40 @@ function App() {
       }
       case 'bfs': return generateBfsSteps(graph, startNodeId);
       case 'dfs': return generateDfsSteps(graph, startNodeId);
-      case 'knapsack': return knapsackMode === 'fifo'
-        ? generateKnapsackSteps(knapsackItems, knapsackCapacity)
-        : generateKnapsackLCSteps(knapsackItems, knapsackCapacity);
+
       case 'nqueens': return generateNQueensSteps(nQueensSize, nQueensFindAll);
       default: return [];
     }
-  }, [activeAlgoId, array, graph, startNodeId, knapsackItems, knapsackCapacity, binarySearchMode, binarySearchTarget, nQueensSize, nQueensFindAll, knapsackMode]);
+  }, [activeAlgoId, array, graph, startNodeId, binarySearchMode, binarySearchTarget, nQueensSize, nQueensFindAll]);
   
   const player = usePlayer(steps, 1);
 
-  // stepsKey: increments every time `steps` is regenerated (mode switch, input change).
-  // Uses useState (not useRef) so the new value actually propagates to KnapsackView
-  // on the SAME render cycle — useRef mutations don't trigger re-renders.
-  const [stepsKey, setStepsKey] = useState(0);
-  useEffect(() => { setStepsKey(k => k + 1); }, [steps]);
-  
+
   const nQueensTotalSolutions = useMemo(() => {
     return activeAlgo.id === 'nqueens' ? steps.filter((s: any) => s.type === 'solution-found').length : 0;
   }, [activeAlgo.id, steps]);
 
-  // For knapsack: also compute FIFO node count so ComplexityPanel can compare LC vs FIFO
-  const fifoNodeCount = useMemo(() => {
-    if (activeAlgoId !== 'knapsack' || knapsackMode !== 'lc') return null;
-    const fifoSteps = generateKnapsackSteps(knapsackItems, knapsackCapacity);
-    return fifoSteps.filter((s: any) => s.type === 'createNode').length;
-  }, [activeAlgoId, knapsackMode, knapsackItems, knapsackCapacity]);
+
 
   const handleShuffleArray = () => {
     setArrayError("");
     setArray(generateRandomArray());
   };
 
-  const handleAddKnapsackItem = () => {
-    const w = parseFloat(newItemW);
-    const v = parseFloat(newItemV);
-    if (!isNaN(w) && !isNaN(v) && w > 0 && v > 0) {
-      setKnapsackItems([...knapsackItems, { weight: w, value: v }]);
-      setNewItemW('');
-      setNewItemV('');
-    }
-  };
+
 
   const isGraph = activeAlgo.type === 'graph';
-  const isTree = activeAlgo.type === 'tree';
   const isMergeSort = activeAlgo.id === 'merge';
   const isBinarySearch = activeAlgo.id === 'binarySearch';
   const isNQueens = activeAlgo.id === 'nqueens';
+  const isActivitySelection = activeAlgo.id === 'activitySelection';
   const isArray = activeAlgo.type === 'array' && !isMergeSort && !isBinarySearch;
 
   let n = 0;
   if (isArray) n = array.length;
   if (isGraph) n = graph.nodes.length;
-  if (isTree) n = knapsackItems.length;
   if (isNQueens) n = nQueensSize;
+  if (isActivitySelection) n = activities.length;
 
   return (
     <div className="min-h-screen flex bg-[#0B0F19] relative overflow-hidden text-white font-sans selection:bg-accent-blue/30">
@@ -332,7 +323,6 @@ function App() {
                     <h2 className="font-display text-3xl font-bold tracking-tight text-white drop-shadow-md">{activeAlgo.name}</h2>
                     <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold border flex items-center space-x-2 ${
                       isGraph ? 'bg-accent-violet/10 text-accent-violet border-accent-violet/20' : 
-                      isTree ? 'bg-accent-green/10 text-accent-green border-accent-green/20' :
                       'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
                     }`}>
                       <span>{activeAlgo.type.toUpperCase()}</span>
@@ -347,45 +337,6 @@ function App() {
                         <Maximize2 className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
                         <span>EXPAND</span>
                       </button>
-                    )}
-                    {isTree && (
-                      <>
-                        {/* FIFO / LC toggle — same pattern as Iterative/Recursive for Binary Search */}
-                        <div className="flex items-center gap-1 bg-black/30 p-1 rounded-lg border border-surfaceHighlight/60">
-                          <button
-                            onClick={() => { setKnapsackMode('fifo'); player.reset(); }}
-                            disabled={player.isPlaying}
-                            className={cn(
-                              "px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
-                              knapsackMode === 'fifo'
-                                ? "bg-accent-green/20 text-accent-green border border-accent-green/40 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
-                                : "text-gray-500 hover:text-gray-300 border border-transparent"
-                            )}
-                          >
-                            FIFO
-                          </button>
-                          <button
-                            onClick={() => { setKnapsackMode('lc'); player.reset(); }}
-                            disabled={player.isPlaying}
-                            className={cn(
-                              "px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
-                              knapsackMode === 'lc'
-                                ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/40 shadow-[0_0_8px_rgba(139,92,246,0.2)]"
-                                : "text-gray-500 hover:text-gray-300 border border-transparent"
-                            )}
-                          >
-                            LC
-                          </button>
-                        </div>
-                        <button 
-                          onClick={() => setIsFullscreen(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-blue/20 to-accent-violet/20 hover:from-accent-blue/30 hover:to-accent-violet/30 border border-accent-blue/30 hover:border-accent-blue/60 rounded-lg text-xs font-bold text-accent-blue transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] ml-1 group"
-                          title="Open Fullscreen"
-                        >
-                          <Maximize2 className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-                          <span>EXPAND</span>
-                        </button>
-                      </>
                     )}
 
                   </div>
@@ -436,6 +387,90 @@ function App() {
                   )}
                 </div>
 
+                {isActivitySelection && (
+                  <div className="mb-6 flex flex-col gap-3 bg-black/20 p-4 rounded-xl border border-white/5">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-2">
+                      <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Activity Inputs</span>
+                      <button
+                        onClick={() => {
+                          const newId = Math.random().toString(36).substr(2, 9);
+                          const nextLabel = String.fromCharCode(65 + (activities.length % 26)); // A, B, C...
+                          setActivities([...activities, { id: newId, label: nextLabel, start: 0, end: 1 }]);
+                          player.reset();
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-green/20 hover:bg-accent-green/30 border border-accent-green/30 text-accent-green rounded-lg text-xs font-bold transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                      >
+                        + Add Activity
+                      </button>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                      {activities.map((act, idx) => (
+                        <div key={act.id} className="flex items-center gap-3 bg-surfaceHighlight/30 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                          <input
+                            type="text"
+                            value={act.label}
+                            onChange={(e) => {
+                              const newActs = [...activities];
+                              newActs[idx].label = e.target.value;
+                              setActivities(newActs);
+                              player.reset();
+                            }}
+                            className="w-12 bg-surface border border-surfaceHighlight rounded px-2 py-1 text-sm font-bold text-white focus:outline-none focus:border-accent-blue"
+                            placeholder="Name"
+                          />
+                          
+                          <div className="flex items-center gap-1.5 ml-auto">
+                            <span className="text-xs font-mono text-gray-500">START:</span>
+                            <input
+                              type="number"
+                              value={act.start}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                const newActs = [...activities];
+                                newActs[idx].start = val;
+                                setActivities(newActs);
+                                player.reset();
+                              }}
+                              className="w-16 bg-surface border border-surfaceHighlight rounded px-2 py-1 text-sm font-mono text-white focus:outline-none focus:border-accent-blue"
+                            />
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-mono text-gray-500">END:</span>
+                            <input
+                              type="number"
+                              value={act.end}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                const newActs = [...activities];
+                                newActs[idx].end = Math.max(newActs[idx].start + 1, val);
+                                setActivities(newActs);
+                                player.reset();
+                              }}
+                              className="w-16 bg-surface border border-surfaceHighlight rounded px-2 py-1 text-sm font-mono text-white focus:outline-none focus:border-accent-blue"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              if (activities.length > 1) {
+                                setActivities(activities.filter(a => a.id !== act.id));
+                                player.reset();
+                              }
+                            }}
+                            disabled={activities.length <= 1}
+                            className="p-1.5 ml-2 text-gray-500 hover:bg-accent-red/20 hover:text-accent-red rounded-md disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-500 transition-all group"
+                            title="Delete Activity"
+                          >
+                            <X className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Custom Inputs */}
                 {(isArray || isMergeSort || isBinarySearch) && (
                   <div className="mb-6 flex flex-col gap-3 bg-black/20 p-3 rounded-xl border border-white/5">
@@ -470,7 +505,7 @@ function App() {
                     
                     {/* Bottom Row: Inputs */}
                     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                      <div className="flex-1 w-full relative">
+                      <div className="flex-1 w-full relative flex gap-2">
                         <input
                           type="text"
                           placeholder="e.g. 5, 2, 9, 1, 7"
@@ -479,6 +514,20 @@ function App() {
                           disabled={player.isPlaying}
                           className="w-full bg-surface border border-surfaceHighlight rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-blue disabled:opacity-50"
                         />
+                        {isBinarySearch && (
+                          <input
+                            type="text"
+                            placeholder="Target"
+                            value={binarySearchTarget ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9-]/g, '');
+                              setBinarySearchTarget(val === '' ? null : Number(val));
+                            }}
+                            disabled={player.isPlaying}
+                            className="w-24 bg-surface border border-surfaceHighlight rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-blue disabled:opacity-50 text-center"
+                            title="Target to search for"
+                          />
+                        )}
                         {arrayError && <p className="absolute -bottom-5 left-1 text-[10px] text-accent-red font-semibold">{arrayError}</p>}
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
@@ -524,6 +573,13 @@ function App() {
                         currentIndex={player.currentIndex}
                       />
                     )}
+                    {isActivitySelection && (
+                      <ActivitySelectionView
+                        activities={activities}
+                        steps={steps as any}
+                        currentIndex={player.currentIndex}
+                      />
+                    )}
                     {isMergeSort && !isFullscreen && (
                       <MergeSortView
                         initialArray={array}
@@ -532,6 +588,7 @@ function App() {
                         isFullscreen={false}
                       />
                     )}
+
                     {isBinarySearch && (
                       <BinarySearchView
                         initialArray={[...array].sort((a,b)=>a-b)}
@@ -549,27 +606,14 @@ function App() {
                         currentIndex={player.currentIndex}
                       />
                     )}
-                    {isTree && !isFullscreen && (
-                      <KnapsackView
-                        steps={steps as any}
-                        currentIndex={player.currentIndex}
-                        capacity={knapsackCapacity}
-                        isFullscreen={false}
-                        stepsKey={stepsKey}
-                      />
-                    )}
-                    {isTree && isFullscreen && (
-                      <div className="flex flex-col items-center justify-center h-[500px] border border-surfaceHighlight/50 rounded-2xl bg-black/20 text-gray-400 text-sm">
-                        <Maximize2 className="w-8 h-8 mb-3 opacity-50" />
-                        Tree is currently open in fullscreen mode.
-                      </div>
-                    )}
+
                     {isMergeSort && isFullscreen && (
                       <div className="flex flex-col items-center justify-center h-[500px] border border-surfaceHighlight/50 rounded-2xl bg-black/20 text-gray-400 text-sm">
                         <Maximize2 className="w-8 h-8 mb-3 opacity-50" />
                         Merge Sort Tree is currently open in fullscreen mode.
                       </div>
                     )}
+
                     {isNQueens && (
                       <NQueensView 
                         n={nQueensSize}
@@ -677,7 +721,6 @@ function App() {
                       steps={steps as any}
                       currentIndex={player.currentIndex}
                       n={n}
-                      fifoNodeCount={fifoNodeCount}
                     />
                   )}
                   {activeSidebarTab === 'code' && (
@@ -689,108 +732,18 @@ function App() {
                 </div>
               </div>
 
-              {/* Config & Stats Card */}
-              <div className="w-full p-6 bg-gradient-to-br from-surface to-surfaceHighlight/30 rounded-2xl border border-surfaceHighlight/50 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-accent-amber to-accent-red" />
-                <h3 className="font-display text-[10px] text-gray-500 font-bold mb-4 uppercase tracking-widest">Settings & Stats</h3>
-                
-                {isGraph && (
-                  <div className="mt-4 pt-4 border-t border-surfaceHighlight/50">
-                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Start Node</label>
-                    <div className="flex items-center space-x-2 bg-black/20 p-2 rounded-xl border border-white/5">
-                      <select 
-                        value={startNodeId}
-                        onChange={(e) => {
-                          setStartNodeId(e.target.value);
-                          player.reset();
-                        }}
-                        disabled={player.isPlaying}
-                        className="w-full bg-surface border border-surfaceHighlight rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue disabled:opacity-50"
-                      >
-                        {graph.nodes.map(n => (
-                          <option key={n.id} value={n.id}>Node {n.id}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {isNQueens && (
-                  <div className="mt-4 pt-4 border-t border-surfaceHighlight/50">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-black/20 p-2 rounded-lg text-center border border-white/5">
-                        <div className="text-[10px] text-gray-500 uppercase font-bold">Attempts</div>
-                        <div className="text-lg font-bold text-accent-blue">{steps.slice(0, player.currentIndex + 1).filter((s: any) => s.type === 'try-place').length}</div>
-                      </div>
-                      <div className="bg-black/20 p-2 rounded-lg text-center border border-white/5">
-                        <div className="text-[10px] text-gray-500 uppercase font-bold">Backtracks</div>
-                        <div className="text-lg font-bold text-accent-amber">{steps.slice(0, player.currentIndex + 1).filter((s: any) => s.type === 'backtrack').length}</div>
-                      </div>
-                      <div className="bg-black/20 p-2 rounded-lg text-center border border-white/5">
-                        <div className="text-[10px] text-gray-500 uppercase font-bold">Solutions</div>
-                        <div className="text-lg font-bold text-accent-green">{steps.slice(0, player.currentIndex + 1).filter((s: any) => s.type === 'solution-found').length}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {isTree && (
-                  <div className="mt-4 pt-4 border-t border-surfaceHighlight/50 space-y-4">
-                    <div>
-                      <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Knapsack Capacity</label>
-                      <input
-                        type="number"
-                        value={knapsackCapacity}
-                        onChange={(e) => {
-                          setKnapsackCapacity(Number(e.target.value));
-                          player.reset();
-                        }}
-                        disabled={player.isPlaying}
-                        className="w-full bg-surface border border-surfaceHighlight rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Items</label>
-                      <div className="space-y-2 mb-3">
-                        {knapsackItems.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center bg-black/20 px-3 py-1.5 rounded-md text-xs border border-white/5">
-                            <span className="text-gray-300">Item {idx}</span>
-                            <div className="space-x-3 text-[10px]">
-                              <span className="text-gray-400">W: <span className="text-white">{item.weight}</span></span>
-                              <span className="text-gray-400">V: <span className="text-white">${item.value}</span></span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex space-x-2">
-                        <input 
-                          type="number" placeholder="W" value={newItemW} onChange={e => setNewItemW(e.target.value)} disabled={player.isPlaying}
-                          className="w-full bg-surface border border-surfaceHighlight rounded-lg px-2 py-1.5 text-xs text-white"
-                        />
-                        <input 
-                          type="number" placeholder="V" value={newItemV} onChange={e => setNewItemV(e.target.value)} disabled={player.isPlaying}
-                          className="w-full bg-surface border border-surfaceHighlight rounded-lg px-2 py-1.5 text-xs text-white"
-                        />
-                        <button onClick={handleAddKnapsackItem} disabled={player.isPlaying} className="bg-surfaceHighlight hover:bg-surfaceHighlight/80 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors">
-                          Add
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </main>
         </div>
       </div>
 
-      {/* FULLSCREEN OVERLAY FOR KNAPSACK & MERGESORT */}
-      {isFullscreen && (isTree || isMergeSort) && (
+      {/* FULLSCREEN OVERLAY FOR MERGESORT */}
+      {isFullscreen && isMergeSort && (
         <div className="fixed inset-0 z-50 bg-[#0B0F19] flex flex-col animate-in fade-in duration-200">
           <div className="flex justify-between items-center p-4 border-b border-surfaceHighlight/50 bg-surface/80 backdrop-blur-md shadow-lg z-10">
             <div className="flex items-center space-x-4">
               <h2 className="text-xl font-bold tracking-tight text-white">
-                {isTree ? "0/1 Knapsack Decision Tree" : "Merge Sort Recursion Tree"}
+                Merge Sort Recursion Tree
               </h2>
               <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold border bg-accent-green/10 text-accent-green border-accent-green/20">
                 FULLSCREEN
@@ -806,15 +759,6 @@ function App() {
           </div>
           
           <div className="flex-1 overflow-hidden relative">
-            {isTree && (
-              <KnapsackView
-                steps={steps as any}
-                currentIndex={player.currentIndex}
-                capacity={knapsackCapacity}
-                isFullscreen={true}
-                stepsKey={stepsKey}
-              />
-            )}
 
             {isMergeSort && (
               <MergeSortView

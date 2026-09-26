@@ -2,7 +2,7 @@ import { useMemo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 import type { MergeSortStep } from '../types';
-import * as d3 from 'd3-hierarchy';
+import { getNodeWidth, computeTreeLayout } from '../utils/treeLayout';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
@@ -166,26 +166,10 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
     return { root: nodes.get(rootId), activeCompare: compare, currentNodes: Array.from(nodes.values()) };
   }, [steps, currentIndex, initialArray]);
 
-  // Compute the rendered pixel width of a node card, accounting for:
-  //   - each cell: 28px (w-7) + 4px gap
-  //   - negative numbers are wider; add ~7px per '-' character in the label
-  //   - a hard minimum of 36px per cell so single-digit negatives always fit
-  const getNodeWidth = useMemo(() => {
-    return (left: number, right: number): number => {
-      const slice = initialArray.slice(left, right + 1);
-      const maxChars = Math.max(...slice.map(v => String(v).length), 1);
-      // cell width = max-chars * ~8.5px (monospace) + 8px padding, floored at 28px
-      const cellW = Math.max(28, maxChars * 8.5 + 8);
-      const count = right - left + 1;
-      // total = cells + (count-1)*4px gap + 4px outer padding each side
-      return count * cellW + (count - 1) * 4 + 8;
-    };
-  }, [initialArray]);
-
   const { nodePositions, nodeWidths, minX, maxX, maxY } = useMemo(() => {
     function buildHierarchy(left: number, right: number) {
       const id = `node-${left}-${right}`;
-      const nodeWidth = getNodeWidth(left, right);
+      const nodeWidth = getNodeWidth(initialArray, left, right);
       const node = { id, left, right, arrayLength: right - left + 1, nodeWidth, children: [] as any[] };
       if (left < right) {
         const mid = Math.floor((left + right) / 2);
@@ -198,36 +182,8 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
     }
 
     const fullHierarchy = buildHierarchy(0, initialArray.length - 1);
-    const hierarchy = d3.hierarchy(fullHierarchy);
-
-    // Custom separation: half-widths of the two nodes + 20px hard minimum gap
-    const separation = (a: any, b: any) => {
-      const gap = 20; // px minimum gap between any two siblings
-      return (a.data.nodeWidth / 2 + b.data.nodeWidth / 2 + gap);
-    };
-
-    const treeLayout = d3.tree<any>()
-      .nodeSize([1, 140])        // y-separation fixed at 140px; x driven by separation fn
-      .separation(separation);  // override default unit separation with our pixel-aware one
-
-    const rootData = treeLayout(hierarchy);
-
-    const positions = new Map<string, { x: number; y: number }>();
-    const widths = new Map<string, number>();
-    let mnX = Infinity, mxX = -Infinity, mxY = -Infinity;
-
-    rootData.descendants().forEach(n => {
-      positions.set(n.data.id, { x: n.x, y: n.y });
-      widths.set(n.data.id, n.data.nodeWidth);
-      const halfWidth = n.data.nodeWidth / 2;
-      if (n.x - halfWidth < mnX) mnX = n.x - halfWidth;
-      if (n.x + halfWidth > mxX) mxX = n.x + halfWidth;
-      if (n.y > mxY) mxY = n.y;
-    });
-
-    if (mnX === Infinity) { mnX = 0; mxX = 0; mxY = 0; }
-    return { nodePositions: positions, nodeWidths: widths, minX: mnX, maxX: mxX, maxY: mxY };
-  }, [initialArray, getNodeWidth]);
+    return computeTreeLayout(fullHierarchy);
+  }, [initialArray]);
 
   const paddingX = 100;
   const paddingY = 80;

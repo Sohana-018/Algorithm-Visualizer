@@ -34,6 +34,8 @@ export function generateBinarySearchIterativeSteps(initialArray: number[], targe
   let low = 0;
   let high = arr.length - 1;
 
+  let foundIndex = -1;
+
   while (low <= high) {
     const mid = Math.floor((low + high) / 2);
     steps.push({
@@ -44,6 +46,7 @@ export function generateBinarySearchIterativeSteps(initialArray: number[], targe
     });
 
     if (arr[mid] === target) {
+      foundIndex = mid;
       steps.push({
         type: 'compare',
         midValue: arr[mid], target, result: 'found',
@@ -82,7 +85,7 @@ export function generateBinarySearchIterativeSteps(initialArray: number[], targe
     }
   }
 
-  if (low > high) {
+  if (foundIndex === -1) {
     steps.push({
       type: 'complete',
       description: `Target ${target} was not found.`,
@@ -91,7 +94,7 @@ export function generateBinarySearchIterativeSteps(initialArray: number[], targe
   } else {
     steps.push({
       type: 'complete',
-      description: `Binary search complete.`,
+      description: `Target ${target} found at index ${foundIndex}!`,
       lines: []
     });
   }
@@ -194,11 +197,11 @@ export function generateBinarySearchRecursiveSteps(initialArray: number[], targe
     }
   }
 
-  search(0, arr.length - 1, 0);
+  const finalResult = search(0, arr.length - 1, 0);
 
   steps.push({
     type: 'complete',
-    description: `Binary search complete.`,
+    description: finalResult !== -1 ? `Target ${target} found at index ${finalResult}!` : `Target ${target} was not found.`,
   });
 
   return steps;

@@ -19,8 +19,12 @@ export function ArrayView({ initialArray, steps, currentIndex }: ArrayViewProps)
     return initialArray.map((val, idx) => ({ id: `id-${idx}-${val}-${Math.random()}`, val }));
   }, [initialArray]);
 
-  const currentArray = useMemo(() => {
+  const { currentArray, minId, liftedId, sortedIds } = useMemo(() => {
     const arr = [...initialArrayWithIds];
+    let mId: string | null = null;
+    let lId: string | null = null;
+    const sIds = new Set<string>();
+
     for (let i = 0; i <= currentIndex; i++) {
       const step = steps[i];
       if (!step) continue;
@@ -31,11 +35,26 @@ export function ArrayView({ initialArray, steps, currentIndex }: ArrayViewProps)
         arr[idx1] = arr[idx2];
         arr[idx2] = temp;
       } else if (step.type === 'overwrite') {
-        // Find a matching object or create a new one to represent the overwritten value
         arr[step.index] = { id: `id-overwrite-${i}-${step.value}`, val: step.value };
+      } else if (step.type === 'mark-min') {
+        mId = arr[step.index].id;
+      } else if (step.type === 'mark-sorted') {
+        sIds.add(arr[step.index].id);
+        mId = null; // Reset min marker when a sorted element is placed
+      } else if (step.type === 'lift') {
+        lId = arr[step.index].id;
+      } else if (step.type === 'shift') {
+        // Shift is visually a swap between the element and the "hole" (lifted element)
+        const idx1 = step.index;
+        const idx2 = step.index + 1;
+        const temp = arr[idx1];
+        arr[idx1] = arr[idx2];
+        arr[idx2] = temp;
+      } else if (step.type === 'insert') {
+        lId = null; // Drop the lifted element back into place
       }
     }
-    return arr;
+    return { currentArray: arr, minId: mId, liftedId: lId, sortedIds: sIds };
   }, [initialArrayWithIds, steps, currentIndex]);
 
   const currentStep = steps[currentIndex];
@@ -86,22 +105,38 @@ export function ArrayView({ initialArray, steps, currentIndex }: ArrayViewProps)
             <motion.div
               layout
               key={item.id}
-              className="w-full max-w-[3rem] relative flex flex-col justify-end h-full z-10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className={cn(
+                "w-full max-w-[3rem] relative flex flex-col justify-end h-full",
+                item.id === liftedId ? "z-20" : "z-10"
+              )}
+              initial={{ opacity: 0, y: 0 }}
+              animate={{ 
+                opacity: 1,
+                y: item.id === liftedId ? -40 : 0
+              }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
               {/* Label — always above the bar, never inside it */}
-              <span
-                className={cn(
-                  "absolute left-0 right-0 text-center text-xs font-mono font-bold drop-shadow-md leading-none pointer-events-none",
-                  isActive ? "text-white" : "text-gray-400"
-                )}
+              <div 
+                className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30" 
                 style={{ bottom: `calc(${heightPercent}% + 4px)` }}
               >
-                {item.val}
-              </span>
+                {item.id === minId && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-accent-amber mb-0.5 bg-[#0B0F19]/90 border border-accent-amber/40 px-1.5 py-0.5 rounded backdrop-blur-sm whitespace-nowrap shadow-[0_0_8px_rgba(245,158,11,0.3)]">min</span>
+                )}
+                {item.id === liftedId && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-accent-amber mb-0.5 bg-[#0B0F19]/90 border border-accent-amber/40 px-1.5 py-0.5 rounded backdrop-blur-sm whitespace-nowrap shadow-[0_0_8px_rgba(245,158,11,0.3)]">temp</span>
+                )}
+                <span
+                  className={cn(
+                    "text-xs font-mono font-bold drop-shadow-md leading-none",
+                    isActive || item.id === liftedId || item.id === minId ? "text-white" : "text-gray-400"
+                  )}
+                >
+                  {item.val}
+                </span>
+              </div>
 
               {/* Bar */}
               <motion.div
@@ -119,10 +154,16 @@ export function ArrayView({ initialArray, steps, currentIndex }: ArrayViewProps)
                 }}
                 className={cn(
                   "w-full rounded-t-lg transition-all duration-200",
-                  isActive && isComparing
+                  item.id === liftedId
+                    ? "bg-gradient-to-t from-accent-amber/40 to-accent-amber shadow-[0_0_30px_rgba(245,158,11,0.7)] border-t border-l border-r border-accent-amber/60"
+                    : item.id === minId
+                    ? "bg-gradient-to-t from-accent-amber/20 to-accent-amber/60 shadow-[0_0_20px_rgba(245,158,11,0.4)] border-2 border-accent-amber"
+                    : isActive && isComparing
                     ? "bg-gradient-to-t from-accent-blue/30 to-accent-blue shadow-[0_0_20px_rgba(59,130,246,0.6)] border-t border-l border-r border-accent-blue/50"
                     : isActive && isSwapping
                     ? "bg-gradient-to-t from-accent-violet/30 to-accent-violet shadow-[0_0_20px_rgba(139,92,246,0.6)] border-t border-l border-r border-accent-violet/50"
+                    : sortedIds.has(item.id)
+                    ? "bg-gradient-to-t from-accent-green/10 to-accent-green/30 border-t border-l border-r border-accent-green/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
                     : "bg-gradient-to-t from-surfaceHighlight/50 to-surfaceHighlight/80 border-t border-l border-r border-white/5 shadow-lg"
                 )}
               />
