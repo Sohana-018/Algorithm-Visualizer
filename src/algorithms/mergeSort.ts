@@ -1,15 +1,30 @@
 import { MergeSortStep } from '../types';
 
 export const mergeSortCode = [
-  "function mergeSort(arr, left, right) {",
-  "  if (left >= right) return;",
-  "  let mid = Math.floor((left + right) / 2);",
-  "  // Divide phase",
-  "  mergeSort(arr, left, mid);",
-  "  mergeSort(arr, mid + 1, right);",
-  "  // Merge phase",
-  "  merge(arr, left, mid, right);",
-  "}"
+  // ── mergeSort (lines 0-6) ────────────────────────────────────────────────
+  "function mergeSort(arr, left, right) {",           // 0
+  "  if (left >= right) return;",                      // 1  base case
+  "  let mid = Math.floor((left + right) / 2);",       // 2  find midpoint
+  "  mergeSort(arr, left, mid);",                      // 3  recurse left half
+  "  mergeSort(arr, mid + 1, right);",                 // 4  recurse right half
+  "  merge(arr, left, mid, right);",                   // 5  merge the two halves
+  "}",                                                  // 6
+  "",                                                   // 7  blank separator
+  // ── merge (lines 8-21) ───────────────────────────────────────────────────
+  "function merge(left, right) {",                     // 8
+  "  let result = [], i = 0, j = 0;",                  // 9
+  "  while (i < left.length && j < right.length) {",   // 10  main loop
+  "    if (left[i] <= right[j])",                       // 11  compare elements
+  "      result.push(left[i++]);",                      // 12  pick from left
+  "    else",                                           // 13
+  "      result.push(right[j++]);",                     // 14  pick from right
+  "  }",                                                // 15
+  "  while (i < left.length)",                          // 16  drain remaining left
+  "    result.push(left[i++]);",                        // 17
+  "  while (j < right.length)",                         // 18  drain remaining right
+  "    result.push(right[j++]);",                       // 19
+  "  return result;",                                   // 20  done
+  "}",                                                  // 21
 ];
 
 export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] {
@@ -43,7 +58,7 @@ export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] 
         rightVal,
         pickedFrom,
         description: `Merging: Comparing ${leftVal} and ${rightVal}. Picked ${pickedFrom === 'left' ? leftVal : rightVal}.`,
-        lines: [8, 9]
+        lines: [10, 11]   // while condition + if compare
       });
 
       if (leftVal <= rightVal) {
@@ -59,7 +74,7 @@ export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] 
         parentId,
         value: temp[temp.length - 1],
         description: `Placed ${temp[temp.length - 1]} into the merged array.`,
-        lines: [9]
+        lines: pickedFrom === 'left' ? [12] : [14]  // which side won
       });
     }
 
@@ -70,7 +85,7 @@ export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] 
         parentId,
         value: arr[i],
         description: `Placed remaining ${arr[i]} from the left half.`,
-        lines: [9]
+        lines: [16, 17]   // drain-left while loop
       });
       i++;
     }
@@ -82,7 +97,7 @@ export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] 
         parentId,
         value: arr[j],
         description: `Placed remaining ${arr[j]} from the right half.`,
-        lines: [9]
+        lines: [18, 19]   // drain-right while loop
       });
       j++;
     }
@@ -97,7 +112,7 @@ export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] 
       nodeId: parentId,
       mergedArray: [...temp],
       description: `Merge complete for this segment: [${temp.join(', ')}].`,
-      lines: [9]
+      lines: [20]   // return result
     });
   }
 
@@ -121,7 +136,7 @@ export function generateMergeSortSteps(initialArray: number[]): MergeSortStep[] 
       leftArr: [...leftArr],
       rightArr: [...rightArr],
       description: `Splitting array into [${leftArr.join(', ')}] and [${rightArr.join(', ')}]`,
-      lines: [4, 5, 6, 7]
+      lines: [2, 3, 4]   // find mid, recurse left, recurse right
     });
 
     mergeSort(left, mid);

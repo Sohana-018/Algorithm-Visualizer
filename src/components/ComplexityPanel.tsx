@@ -16,6 +16,8 @@ interface ComplexityPanelProps {
   steps: AlgorithmStep[];
   currentIndex: number;
   n: number;
+  /** When in LC mode: the node count FIFO would have explored, for comparison */
+  fifoNodeCount?: number | null;
 }
 
 /** Animates a number from its previous value to a new value */
@@ -40,7 +42,7 @@ function AnimatedNumber({ value }: { value: number }) {
   );
 }
 
-export function ComplexityPanel({ info, steps, currentIndex, n }: ComplexityPanelProps) {
+export function ComplexityPanel({ info, steps, currentIndex, n, fifoNodeCount = null }: ComplexityPanelProps) {
   const { comparisons, swaps, visited, createdNodes, prunedNodes } = useMemo(() => {
     let comps = 0, swps = 0, vis = 0, created = 0, pruned = 0;
     for (let i = 0; i <= currentIndex; i++) {
@@ -74,6 +76,11 @@ export function ComplexityPanel({ info, steps, currentIndex, n }: ComplexityPane
       analysis = `For n=${n} items, ${createdNodes} nodes were explored out of theoretical max ${Math.pow(2, n + 1) - 1}.`;
       if (prunedNodes > 0) {
         analysis += ` Pruned ${prunedNodes} branches, saving lots of computation.`;
+      }
+      // LC vs FIFO comparison
+      if (fifoNodeCount !== null && fifoNodeCount > 0) {
+        const saved = fifoNodeCount - createdNodes;
+        analysis += ` LC explored ${createdNodes} nodes vs FIFO's ${fifoNodeCount} nodes — ${saved > 0 ? `${saved} fewer nodes = less wasted computation` : 'similar node counts for this input'}.`;
       }
     }
   }

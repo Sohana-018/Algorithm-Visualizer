@@ -14,7 +14,7 @@ import { generateBubbleSortSteps, bubbleSortCode } from './algorithms/bubbleSort
 import { generateMergeSortSteps, mergeSortCode } from './algorithms/mergeSort';
 import { generateBinarySearchIterativeSteps, generateBinarySearchRecursiveSteps, binarySearchIterativeCode, binarySearchRecursiveCode } from './algorithms/binarySearch';
 import { generateBfsSteps, generateDfsSteps, bfsCode, dfsCode } from './algorithms/graph';
-import { generateKnapsackSteps, knapsackCode } from './algorithms/knapsack';
+import { generateKnapsackSteps, generateKnapsackLCSteps, knapsackFifoCode, knapsackLCCode, knapsackCode } from './algorithms/knapsack';
 import { generateNQueensSteps, nQueensCode } from './algorithms/nqueens';
 import { Maximize2, X, Activity, GitMerge, Search, GitCommit, GitPullRequest, Box, Menu, ChevronDown, ChevronUp, Crown } from 'lucide-react';
 import type { AlgorithmType } from './types';
@@ -70,7 +70,7 @@ const algorithms = [
   },
   { 
     id: 'knapsack', name: '0/1 Knapsack', type: 'tree', icon: Box, complexity: 'O(2ⁿ)', code: knapsackCode,
-    info: { best: "Ω(n)", average: "Better than O(2ⁿ)", worst: "O(2ⁿ)", space: "O(n)", explanation: "Worst O(2ⁿ), but Average is much better in practice due to pruning bounding out suboptimal branches." }
+    info: { best: "Ω(n)", average: "Better than O(2ⁿ)", worst: "O(2ⁿ)", space: "O(n)", explanation: "Worst O(2ⁿ), but Average is much better in practice due to pruning bounding out suboptimal branches. LC (Best-First) mode typically explores far fewer nodes than FIFO by always expanding the most promising branch first." }
   },
   {
     id: 'nqueens', name: 'N-Queens', type: 'backtracking', icon: Crown, complexity: 'O(N!)', code: nQueensCode,
@@ -81,6 +81,7 @@ const algorithms = [
 function App() {
   const [activeAlgoId, setActiveAlgoId] = useState<AlgorithmType>('bubble');
   const [binarySearchMode, setBinarySearchMode] = useState<'iterative' | 'recursive'>('iterative');
+  const [knapsackMode, setKnapsackMode] = useState<'fifo' | 'lc'>('fifo');
   
   let activeAlgo = algorithms.find(a => a.id === activeAlgoId)!;
   if (activeAlgoId === 'binarySearch') {
@@ -94,6 +95,14 @@ function App() {
           ? activeAlgo.info.explanation + " Space O(1) for iterative variables." 
           : activeAlgo.info.explanation + " Space O(log n) for recursive call stack."
       }
+    };
+  }
+
+  // Update knapsack code shown in Code Panel to match current mode
+  if (activeAlgoId === 'knapsack') {
+    activeAlgo = {
+      ...activeAlgo,
+      code: knapsackMode === 'fifo' ? knapsackFifoCode : knapsackLCCode,
     };
   }
   
@@ -157,17 +166,32 @@ function App() {
       }
       case 'bfs': return generateBfsSteps(graph, startNodeId);
       case 'dfs': return generateDfsSteps(graph, startNodeId);
-      case 'knapsack': return generateKnapsackSteps(knapsackItems, knapsackCapacity);
+      case 'knapsack': return knapsackMode === 'fifo'
+        ? generateKnapsackSteps(knapsackItems, knapsackCapacity)
+        : generateKnapsackLCSteps(knapsackItems, knapsackCapacity);
       case 'nqueens': return generateNQueensSteps(nQueensSize, nQueensFindAll);
       default: return [];
     }
-  }, [activeAlgoId, array, graph, startNodeId, knapsackItems, knapsackCapacity, binarySearchMode, binarySearchTarget, nQueensSize, nQueensFindAll]);
+  }, [activeAlgoId, array, graph, startNodeId, knapsackItems, knapsackCapacity, binarySearchMode, binarySearchTarget, nQueensSize, nQueensFindAll, knapsackMode]);
   
   const player = usePlayer(steps, 1);
+
+  // stepsKey: increments every time `steps` is regenerated (mode switch, input change).
+  // Uses useState (not useRef) so the new value actually propagates to KnapsackView
+  // on the SAME render cycle — useRef mutations don't trigger re-renders.
+  const [stepsKey, setStepsKey] = useState(0);
+  useEffect(() => { setStepsKey(k => k + 1); }, [steps]);
   
   const nQueensTotalSolutions = useMemo(() => {
     return activeAlgo.id === 'nqueens' ? steps.filter((s: any) => s.type === 'solution-found').length : 0;
   }, [activeAlgo.id, steps]);
+
+  // For knapsack: also compute FIFO node count so ComplexityPanel can compare LC vs FIFO
+  const fifoNodeCount = useMemo(() => {
+    if (activeAlgoId !== 'knapsack' || knapsackMode !== 'lc') return null;
+    const fifoSteps = generateKnapsackSteps(knapsackItems, knapsackCapacity);
+    return fifoSteps.filter((s: any) => s.type === 'createNode').length;
+  }, [activeAlgoId, knapsackMode, knapsackItems, knapsackCapacity]);
 
   const handleShuffleArray = () => {
     setArrayError("");
@@ -314,7 +338,7 @@ function App() {
                       <span>{activeAlgo.type.toUpperCase()}</span>
                     </span>
                     
-                    {(isTree || isMergeSort) && (
+                    {isMergeSort && (
                       <button 
                         onClick={() => setIsFullscreen(true)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-blue/20 to-accent-violet/20 hover:from-accent-blue/30 hover:to-accent-violet/30 border border-accent-blue/30 hover:border-accent-blue/60 rounded-lg text-xs font-bold text-accent-blue transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] ml-2 group"
@@ -324,6 +348,46 @@ function App() {
                         <span>EXPAND</span>
                       </button>
                     )}
+                    {isTree && (
+                      <>
+                        {/* FIFO / LC toggle — same pattern as Iterative/Recursive for Binary Search */}
+                        <div className="flex items-center gap-1 bg-black/30 p-1 rounded-lg border border-surfaceHighlight/60">
+                          <button
+                            onClick={() => { setKnapsackMode('fifo'); player.reset(); }}
+                            disabled={player.isPlaying}
+                            className={cn(
+                              "px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
+                              knapsackMode === 'fifo'
+                                ? "bg-accent-green/20 text-accent-green border border-accent-green/40 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
+                                : "text-gray-500 hover:text-gray-300 border border-transparent"
+                            )}
+                          >
+                            FIFO
+                          </button>
+                          <button
+                            onClick={() => { setKnapsackMode('lc'); player.reset(); }}
+                            disabled={player.isPlaying}
+                            className={cn(
+                              "px-2.5 py-1 rounded-md text-[11px] font-bold transition-all",
+                              knapsackMode === 'lc'
+                                ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/40 shadow-[0_0_8px_rgba(139,92,246,0.2)]"
+                                : "text-gray-500 hover:text-gray-300 border border-transparent"
+                            )}
+                          >
+                            LC
+                          </button>
+                        </div>
+                        <button 
+                          onClick={() => setIsFullscreen(true)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-blue/20 to-accent-violet/20 hover:from-accent-blue/30 hover:to-accent-violet/30 border border-accent-blue/30 hover:border-accent-blue/60 rounded-lg text-xs font-bold text-accent-blue transition-all duration-200 shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_16px_rgba(59,130,246,0.35)] ml-1 group"
+                          title="Open Fullscreen"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
+                          <span>EXPAND</span>
+                        </button>
+                      </>
+                    )}
+
                   </div>
                   {isNQueens && (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-black/20 px-4 py-3 rounded-xl border border-white/5">
@@ -491,6 +555,7 @@ function App() {
                         currentIndex={player.currentIndex}
                         capacity={knapsackCapacity}
                         isFullscreen={false}
+                        stepsKey={stepsKey}
                       />
                     )}
                     {isTree && isFullscreen && (
@@ -577,7 +642,7 @@ function App() {
             </div>
 
             {/* RIGHT COLUMN: TABS & LIVE ACTION */}
-            <div className="space-y-6 flex flex-col lg:sticky lg:top-8 h-fit pb-12">
+            <div className="space-y-6 flex flex-col lg:sticky lg:top-8 lg:self-start overflow-y-auto max-h-[calc(100vh-4rem)] pb-12">
               
               <div className="flex flex-col space-y-4">
                 {/* Tab Navigation */}
@@ -612,6 +677,7 @@ function App() {
                       steps={steps as any}
                       currentIndex={player.currentIndex}
                       n={n}
+                      fifoNodeCount={fifoNodeCount}
                     />
                   )}
                   {activeSidebarTab === 'code' && (
@@ -746,8 +812,10 @@ function App() {
                 currentIndex={player.currentIndex}
                 capacity={knapsackCapacity}
                 isFullscreen={true}
+                stepsKey={stepsKey}
               />
             )}
+
             {isMergeSort && (
               <MergeSortView
                 initialArray={array}

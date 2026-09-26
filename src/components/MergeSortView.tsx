@@ -166,38 +166,68 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
     return { root: nodes.get(rootId), activeCompare: compare, currentNodes: Array.from(nodes.values()) };
   }, [steps, currentIndex, initialArray]);
 
-  const { nodePositions, minX, maxX, maxY } = useMemo(() => {
+  // Compute the rendered pixel width of a node card, accounting for:
+  //   - each cell: 28px (w-7) + 4px gap
+  //   - negative numbers are wider; add ~7px per '-' character in the label
+  //   - a hard minimum of 36px per cell so single-digit negatives always fit
+  const getNodeWidth = useMemo(() => {
+    return (left: number, right: number): number => {
+      const slice = initialArray.slice(left, right + 1);
+      const maxChars = Math.max(...slice.map(v => String(v).length), 1);
+      // cell width = max-chars * ~8.5px (monospace) + 8px padding, floored at 28px
+      const cellW = Math.max(28, maxChars * 8.5 + 8);
+      const count = right - left + 1;
+      // total = cells + (count-1)*4px gap + 4px outer padding each side
+      return count * cellW + (count - 1) * 4 + 8;
+    };
+  }, [initialArray]);
+
+  const { nodePositions, nodeWidths, minX, maxX, maxY } = useMemo(() => {
     function buildHierarchy(left: number, right: number) {
       const id = `node-${left}-${right}`;
-      const node = { id, arrayLength: right - left + 1, children: [] as any[] };
+      const nodeWidth = getNodeWidth(left, right);
+      const node = { id, left, right, arrayLength: right - left + 1, nodeWidth, children: [] as any[] };
       if (left < right) {
         const mid = Math.floor((left + right) / 2);
         node.children.push(buildHierarchy(left, mid));
         node.children.push(buildHierarchy(mid + 1, right));
       } else {
-        delete (node as any).children; 
+        delete (node as any).children;
       }
       return node;
     }
+
     const fullHierarchy = buildHierarchy(0, initialArray.length - 1);
     const hierarchy = d3.hierarchy(fullHierarchy);
-    const treeLayout = d3.tree<any>().nodeSize([40, 140]); 
+
+    // Custom separation: half-widths of the two nodes + 20px hard minimum gap
+    const separation = (a: any, b: any) => {
+      const gap = 20; // px minimum gap between any two siblings
+      return (a.data.nodeWidth / 2 + b.data.nodeWidth / 2 + gap);
+    };
+
+    const treeLayout = d3.tree<any>()
+      .nodeSize([1, 140])        // y-separation fixed at 140px; x driven by separation fn
+      .separation(separation);  // override default unit separation with our pixel-aware one
+
     const rootData = treeLayout(hierarchy);
-    
-    const positions = new Map<string, {x: number, y: number}>();
+
+    const positions = new Map<string, { x: number; y: number }>();
+    const widths = new Map<string, number>();
     let mnX = Infinity, mxX = -Infinity, mxY = -Infinity;
-    
+
     rootData.descendants().forEach(n => {
       positions.set(n.data.id, { x: n.x, y: n.y });
-      const halfWidth = (n.data.arrayLength * 32) / 2;
+      widths.set(n.data.id, n.data.nodeWidth);
+      const halfWidth = n.data.nodeWidth / 2;
       if (n.x - halfWidth < mnX) mnX = n.x - halfWidth;
       if (n.x + halfWidth > mxX) mxX = n.x + halfWidth;
       if (n.y > mxY) mxY = n.y;
     });
-    
+
     if (mnX === Infinity) { mnX = 0; mxX = 0; mxY = 0; }
-    return { nodePositions: positions, minX: mnX, maxX: mxX, maxY: mxY };
-  }, [initialArray.length]);
+    return { nodePositions: positions, nodeWidths: widths, minX: mnX, maxX: mxX, maxY: mxY };
+  }, [initialArray, getNodeWidth]);
 
   const paddingX = 100;
   const paddingY = 80;
@@ -307,7 +337,10 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
                   // Exit the children node smoothly if their parent just completed its merge
                   if (shouldExit) return null; 
 
-                  const w = data.array.length * 32;
+                  const w = nodeWidths.get(data.id) ?? data.array.length * 32;
+                  // Per-cell width based on widest value in this node (accounts for '-' sign)
+                  const maxChars = Math.max(...data.array.map(v => String(v).length), 1);
+                  const cellW = Math.max(28, maxChars * 8.5 + 8);
                   
                   // Compute the slots to display for this node
                   let displayArray: (number | null)[] = [];
@@ -331,7 +364,7 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
                       exit={{ opacity: 0, scale: 0.5 }}
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     >
-                      <foreignObject x={-w / 2} y={-16} width={w} height={32} className="overflow-visible pointer-events-none">
+                      <foreignObject x={-w / 2} y={-18} width={w} height={36} className="overflow-visible pointer-events-none">
                         <div className="flex w-full justify-center space-x-[4px]">
                           {displayArray.map((val, idx) => {
                             // Determine styling for individual cells
@@ -356,7 +389,7 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
                               <div 
                                 key={idx}
                                 className={cn(
-                                  "w-7 h-7 flex items-center justify-center text-[12px] font-bold rounded-md border transition-all duration-300",
+                                  "flex items-center justify-center text-[12px] font-bold rounded-md border transition-all duration-300",
                                   val === null ? "bg-surface/30 border-dashed border-gray-600/50 text-transparent" : 
                                   isWinner ? "bg-gradient-to-t from-accent-amber/40 to-accent-amber/20 border-accent-amber text-accent-amber shadow-[0_0_12px_rgba(245,158,11,0.6)] z-10 scale-110" :
                                   isCompared ? "bg-gradient-to-t from-accent-blue/40 to-accent-blue/20 border-accent-blue text-accent-blue shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10" :
@@ -364,6 +397,7 @@ export function MergeSortView({ initialArray, steps, currentIndex, isFullscreen 
                                   isDone ? "bg-gradient-to-b from-surfaceHighlight to-surface border-gray-500/50 text-gray-200 shadow-md" :
                                   "bg-gradient-to-b from-surfaceHighlight/50 to-surface/50 border-gray-600/30 text-gray-400"
                                 )}
+                                style={{ width: cellW, height: cellW, flexShrink: 0 }}
                               >
                                 {val !== null ? val : ''}
                               </div>
